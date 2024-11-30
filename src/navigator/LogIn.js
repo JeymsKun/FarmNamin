@@ -10,7 +10,8 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
-export default function LoginScreen({ navigation }) {
+
+export default function LogIn({ navigation }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -58,11 +59,7 @@ export default function LoginScreen({ navigation }) {
             onPress={() => setShowPassword(!showPassword)}
             style={styles.eyeIconContainer}
           >
-            <Icon
-              name={showPassword ? 'eye-off' : 'eye'}
-              size={20}
-              color="black"
-            />
+            <Icon name={showPassword ? 'eye-off' : 'eye'} size={20} color="black" />
           </TouchableOpacity>
         </View>
 
@@ -78,6 +75,7 @@ export default function LoginScreen({ navigation }) {
           <Text style={styles.loginButtonText}>Login</Text>
         </TouchableOpacity>
 
+        {/* Add navigation to SignUp screen */}
         <TouchableOpacity onPress={() => navigation.navigate('SignUp')}>
           <Text style={styles.signUp}>
             Don't have an account?{' '}

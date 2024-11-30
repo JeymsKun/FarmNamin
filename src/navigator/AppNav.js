@@ -3,6 +3,7 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { Easing, StyleSheet } from 'react-native';
 import HomeTabs from '../hometabs/HomeTabs';
 import LogIn from '../navigator/LogIn';
+import SignUpScreen from '../navigator/SignUpScreen'; // Correct import path
 
 const Stack = createStackNavigator();
 
@@ -10,7 +11,7 @@ const AppNav = () => {
   return (
     <NavigationContainer>
       <Stack.Navigator
-        initialRouteName="LogIn" // Start with the LogIn screen
+        initialRouteName="LogIn"
         screenOptions={{
           headerShown: false,
           transitionSpec: {
@@ -46,11 +47,11 @@ const AppNav = () => {
           },
         }}
       >
-        {/* Add the LogIn screen */}
         <Stack.Screen name="LogIn" component={LogIn} />
 
-        {/* Add the HomeTabs screen */}
         <Stack.Screen name="HomeTabs" component={HomeTabs} />
+
+        <Stack.Screen name="SignUp" component={SignUpScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
