@@ -3,7 +3,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { Easing } from 'react-native';
 import HomeTabs from '../hometabs/HomeTabs';
-import ProfileSetUp from './ProfileSetUp';
+import ProfileSetUp from '../pages/ProfileSetUp';
 
 const Stack = createStackNavigator();
 
