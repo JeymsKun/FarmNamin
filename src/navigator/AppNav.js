@@ -3,6 +3,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { Easing } from 'react-native';
 import HomeTabs from '../hometabs/HomeTabs';
+import ProfileSetUp from './ProfileSetUp';
 
 const Stack = createStackNavigator();
 
@@ -47,7 +48,7 @@ const AppNav = () => {
         }}
       >
 
-        
+        <Stack.Screen name="ProfileSetUp" component={ProfileSetUp} />
         <Stack.Screen name="HomeTabs" component={HomeTabs} />
         
       </Stack.Navigator>
