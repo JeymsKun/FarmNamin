@@ -10,7 +10,6 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
-
 export default function LogIn({ navigation }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -67,7 +66,8 @@ export default function LogIn({ navigation }) {
           <Text style={styles.errorText}>{errorMessage}</Text>
         ) : null}
 
-        <TouchableOpacity>
+        {/* Navigate to ResetPasswordScreen on "Forgot password?" press */}
+        <TouchableOpacity onPress={() => navigation.navigate('ResetPasswordScreen')}>
           <Text style={styles.forgotPassword}>Forgot password?</Text>
         </TouchableOpacity>
 

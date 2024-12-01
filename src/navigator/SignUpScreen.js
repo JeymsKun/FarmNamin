@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ImageBackground, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Image, ImageBackground, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
 
 export default function SignUpScreen({ navigation }) {
@@ -31,8 +31,13 @@ export default function SignUpScreen({ navigation }) {
     <ImageBackground source={require('../../assets/Wheat1.jpg')} style={styles.background}>
       <View style={styles.overlay} />
       <View style={styles.container}>
-        <Text style={styles.title}>FarmNamin</Text>
 
+        <Image
+          source={require('../../assets/Green.png')}
+          style={styles.logo}
+        />
+        <Text style={styles.title}>FarmNamin</Text>
+        
         <TextInput
           style={styles.input}
           placeholder="Username"
@@ -40,7 +45,6 @@ export default function SignUpScreen({ navigation }) {
           value={username}
           onChangeText={setUsername}
         />
-
         <TextInput
           style={styles.input}
           placeholder="Email Address"
@@ -48,7 +52,6 @@ export default function SignUpScreen({ navigation }) {
           value={email}
           onChangeText={setEmail}
         />
-
         <TextInput
           style={styles.input}
           placeholder="Contact Number"
@@ -56,7 +59,6 @@ export default function SignUpScreen({ navigation }) {
           value={contactNumber}
           onChangeText={setContactNumber}
         />
-
         <View style={styles.passwordContainer}>
           <TextInput
             style={[styles.input, { flex: 1, paddingRight: 40 }]} // Adding padding to the right for the icon
@@ -70,7 +72,6 @@ export default function SignUpScreen({ navigation }) {
             <Icon name={showPassword ? 'eye-off' : 'eye'} size={24} color="black" />
           </TouchableOpacity>
         </View>
-
         <View style={styles.passwordContainer}>
           <TextInput
             style={[styles.input, { flex: 1, paddingRight: 40 }]}
@@ -84,16 +85,13 @@ export default function SignUpScreen({ navigation }) {
             <Icon name={showConfirmPassword ? 'eye-off' : 'eye'} size={24} color="black" />
           </TouchableOpacity>
         </View>
-
         {/* Alternative to checkbox for accepting terms */}
         <TouchableOpacity onPress={() => setTermsAccepted(!termsAccepted)} style={styles.termsContainer}>
           <Text style={styles.termsText}>
             {termsAccepted ? '✓ ' : '□ '} Accept Terms and Conditions
           </Text>
         </TouchableOpacity>
-
         {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
-
         <TouchableOpacity style={styles.signupButton} onPress={handleSignUp}>
           <Text style={styles.signupButtonText}>Sign Up</Text>
         </TouchableOpacity>
@@ -124,7 +122,12 @@ const styles = StyleSheet.create({
     fontSize: 50,
     color: '#12C824',
     fontWeight: 'bold',
-    marginBottom: 20,
+    marginBottom: 50,
+  },
+  logo: {
+    width: 200,
+    height: 200,
+    top: 50,
   },
   input: {
     width: '100%',

@@ -3,7 +3,8 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { Easing, StyleSheet } from 'react-native';
 import HomeTabs from '../hometabs/HomeTabs';
 import LogIn from '../navigator/LogIn';
-import SignUpScreen from '../navigator/SignUpScreen'; // Correct import path
+import ResetPasswordScreen from '../navigator/ResetPasswordScreen';
+import SignUpScreen from '../navigator/SignUpScreen';
 
 const Stack = createStackNavigator();
 
@@ -52,6 +53,8 @@ const AppNav = () => {
         <Stack.Screen name="HomeTabs" component={HomeTabs} />
 
         <Stack.Screen name="SignUp" component={SignUpScreen} />
+
+        <Stack.Screen name="ResetPasswordScreen" component={ResetPasswordScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
