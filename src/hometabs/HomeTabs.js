@@ -4,14 +4,14 @@ import { createStackNavigator, CardStyleInterpolators } from '@react-navigation/
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { View, Animated, Dimensions } from 'react-native';
 import HomeScreen from './../pages/Home';
-import ProductScreen from './../pages/Product'; 
+import MarketScreen from './../pages/Marketplace'; 
 import ProfileScreen from './../pages/Profile';  
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
 const { width } = Dimensions.get('window');
 
-const ProductStack = () => {
+const MarketStack = () => {
     return (
         <Stack.Navigator
             screenOptions={{
@@ -19,7 +19,7 @@ const ProductStack = () => {
                 cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS,
             }}
         >
-            <Stack.Screen name="Product" component={ProductScreen} />
+            <Stack.Screen name="Marketplace" component={MarketScreen} />
         
         </Stack.Navigator>
     );
@@ -89,8 +89,8 @@ const screenOptions = {
                         let iconName;
                         if (route.name === 'HomeScreen') {
                             iconName = 'home-outline';
-                        } else if (route.name === 'ProductScreen') {
-                            iconName = 'cart-outline';
+                        } else if (route.name === 'MarketScreen') {
+                            iconName = 'storefront-outline';
                         } else if (route.name === 'ProfileScreen') {
                             iconName = 'person-outline';
                         }
@@ -113,7 +113,7 @@ const screenOptions = {
                         let index;
                         if (route.name === 'HomeScreen') {
                         index = 0;
-                        } else if (route.name === 'ProductScreen') {
+                        } else if (route.name === 'MarketScreen') {
                         index = 1;
                         } else if (route.name === 'ProfileScreen') {
                         index = 2;
@@ -125,8 +125,8 @@ const screenOptions = {
                 {/* HomeScreen Stack */}
                 <Tab.Screen name="HomeScreen" component={HomeStack} options={{ title: 'Home' }}/>
 
-                {/* ProductScreen Stack */}
-                <Tab.Screen name="ProductScreen" component={ProductStack} options={{ title: 'Product' }} />
+                {/* MarketScreen Stack */}
+                <Tab.Screen name="MarketScreen" component={MarketStack} options={{ title: 'Marketplace' }} />
 
                 {/* ProfileScreen Stack */}
                 <Tab.Screen name="ProfileScreen" component={ProfileStack} options={{ title: 'Profile' }}/>
