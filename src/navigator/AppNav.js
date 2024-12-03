@@ -2,9 +2,11 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { Easing, StyleSheet } from 'react-native';
 import HomeTabs from '../hometabs/HomeTabs';
-import LogIn from '../navigator/LogIn';
-import ResetPasswordScreen from '../navigator/ResetPasswordScreen';
-import SignUpScreen from '../navigator/SignUpScreen';
+import ProfileSetUp from '../pages/ProfileSetUp';
+import LogIn from '../pages/LogIn';
+import ResetPasswordScreen from '../pages/ResetPasswordScreen';
+import ChangePassword from '../pages/ChangePassword';
+import SignUpScreen from '../pages/SignUpScreen';
 
 const Stack = createStackNavigator();
 
@@ -49,12 +51,12 @@ const AppNav = () => {
         }}
       >
         <Stack.Screen name="LogIn" component={LogIn} />
-
+        <Stack.Screen name="SignUp" component={SignUpScreen} />
+        <Stack.Screen name="ResetPasswordScreen" component={ResetPasswordScreen} />
+        <Stack.Screen name="ChangePassword" component={ChangePassword}/>
+        <Stack.Screen name="ProfileSetUp" component={ProfileSetUp} />
         <Stack.Screen name="HomeTabs" component={HomeTabs} />
 
-        <Stack.Screen name="SignUp" component={SignUpScreen} />
-
-        <Stack.Screen name="ResetPasswordScreen" component={ResetPasswordScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
