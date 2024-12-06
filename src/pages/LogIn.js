@@ -181,14 +181,12 @@ export default function LogIn({ navigation, route }) {
 
           </View>
 
-          <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
-            {loading ? (
-              <ActivityIndicator size={25} color="white" />
-            ) : (
-              <Text style={styles.loginButtonText}>Login</Text>
-            )}
+          <TouchableOpacity 
+            style={styles.loginButton} 
+            onPress={() => navigation.navigate('HomeTabs')}
+          >
+            <Text>Log In</Text>
           </TouchableOpacity>
-
           <View style={styles.signUpContainer}>
             <Text style={styles.signUp}>
               Don't have an account?
