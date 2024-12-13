@@ -3,11 +3,12 @@ import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view
 import { LinearGradient } from 'expo-linear-gradient';
 import { Image, ImageBackground, StyleSheet, Text, TextInput, TouchableOpacity, View, StatusBar, ActivityIndicator, Dimensions, Platform } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { supabase } from '../backend/supabaseClient';
 
 const { width, height } = Dimensions.get('window');
 
 export default function SignUpScreen({ navigation, route }) {
-  // const { role } = route.params;
+  const { userId, role } = route.params;
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -33,101 +34,106 @@ export default function SignUpScreen({ navigation, route }) {
     return regex.test(password);
   };  
 
-  const handleSignUpSubmit = () => {
-    setUsernameFocused(true);
-    setEmailFocused(true);
-    setPhoneNumberFocused(true);
-    setPasswordFocused(true);
-    setConfirmPasswordFocused(true);
+  const checkExistingUsers = async () => {
+    const { data: usernameData, error: usernameError } = await supabase
+      .from('users')
+      .select('username')
+      .ilike('username', username);
 
-    const errors = [];
+    const { data: emailData, error: emailError } = await supabase
+      .from('users')
+      .select('email')
+      .ilike('email', email);
 
-    if (!username.trim()) errors.push('username');
-    if (!email.trim() || !isValidEmail(email)) errors.push('email');
-    if (!phoneNumber.trim()) errors.push('phoneNumber');
+    const { data: phoneData, error: phoneError } = await supabase
+      .from('users')
+      .select('phoneNumber')
+      .eq('phoneNumber', phoneNumber);
 
-    if (!password.trim()) {
-      errors.push('password');
-    } else if (!isStrongPassword(password)) {
-      errors.push('weakPassword');
+    if (usernameData.length > 0) {
+      setUsernameExists(true);
+      setTimeout(() => setLoading(false), 2000);
+    } else {
+      setUsernameExists(false);
+      setTimeout(() => setLoading(false), 2000);
     }
 
-    if (!confirmPassword.trim() || password !== confirmPassword) errors.push('confirmPassword');
-    if (!agree) errors.push('agree');
+    if (emailData.length > 0) {
+      setEmailExists(true);
+      setTimeout(() => setLoading(false), 2000);
+    } else {
+      setEmailExists(false);
+      setTimeout(() => setLoading(false), 2000);
+    }
 
-    if (errors.length > 0) {
-      setLoading(false); 
+    if (phoneData.length > 0) {
+      setPhoneExists(true);
+      setTimeout(() => setLoading(false), 2000);
+    } else {
+      setPhoneExists(false);
+      setTimeout(() => setLoading(false), 2000);
+    }
+
+    return usernameData.length === 0 && emailData.length === 0 && phoneData.length === 0;
+  };
+
+  const handleSignUpSubmit = async () => {
+    setLoading(true);
+
+    if (!username || !email || !phoneNumber || !password || !confirmPassword || !agree) {
       return;
     }
 
-    const formattedPhoneNumber = `0${phoneNumber}`;
-    console.log('Username:', username);
-    console.log('Email:', email);
-    console.log('Phone Number:', formattedPhoneNumber);
-    console.log('Password:', password);
-    console.log('Confirm Password:', confirmPassword);
+    if (password !== confirmPassword) {
+      return;
+    }
 
-    InsertRecord(formattedPhoneNumber);
-  };
+    if (!isValidEmail(email)) {
+      return;
+    }
 
+    if (!isStrongPassword(password)) {
 
-  const InsertRecord = (formattedPhoneNumber) => {
-    setLoading(true);
+      return;
+    }
 
-    const InsertAPIURL = "http://192.168.1.56/farmnamin/signup.php";  
-    const headers = {
-        'Accept': 'application/json', 
-        'Content-Type': 'application/json'
-    };
+    const isUnique = await checkExistingUsers();
+    if (!isUnique) {
+      return;
+    }
 
-    const data = {
-      username,
-      email, 
-      phoneNumber: formattedPhoneNumber,
-      password,
-      confirmPassword,
-      agree: agree ? 'yes' : 'no', 
-      role
-    };
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .insert({
+          username,
+          email,
+          phoneNumber,
+          password,
+          role,
+          isInfoComplete: false,
+          agree: agree ? "yes" : "no"
+        })
+        .select('id_user') 
+        .single();
 
-    fetch(InsertAPIURL, {
-      method: 'POST',
-      headers: headers,
-      body: JSON.stringify(data)
-    })
-    .then(response => response.text())
-    .then(text => {
-      console.log('Response Text:', text);
-      try {
-        return JSON.parse(text);
-      } catch (error) {
-        console.error('JSON Parse Error:', error);
-        throw error;
+      if (error) {
+        throw error; 
       }
-    })
-    .then(responseData => {
-      setLoading(false);
-      if (Array.isArray(responseData) && responseData[0] && responseData[0].Message) {
-        if (responseData[0].Message === "You have successfully signed up!") {
-          console.log(responseData[0].Message);
-          setTimeout(() => {
-            navigation.navigate('ProfileSetUp', { role }); 
-          }, 2000);
-        } else if (responseData[0].Message === "Username, email, or phone number already exists.") {
-          if (responseData[0].Username) setUsernameExists(true);
-          if (responseData[0].Email) setEmailExists(true);
-          if (responseData[0].PhoneNumber) setPhoneExists(true);         
-        } else {
-          console.log(responseData[0].Message);
-        }
-      } else {
-        console.log("Unexpected response format.");
+
+      const userId = data?.id_user; 
+
+      if (!userId) {
+          throw new Error('User ID not generated.');
       }
-    })
-    .catch(error => {
-      setLoading(false);
-      console.log("Error: " + error.message);
-    });
+
+      navigation.navigate('ProfileSetUp', { userId, role });
+
+    } catch (error) {
+      Alert.alert('Sign-Up Error', error.message); 
+    } finally {
+      setTimeout(() => setLoading(false), 2000);
+    }
   };
 
   return (
@@ -156,7 +162,11 @@ export default function SignUpScreen({ navigation, route }) {
           </TouchableOpacity>
 
           <View style={styles.header}>
-            <Image source={require('../../assets/farm_user.png')} style={styles.logo} />
+            {role === 'consumer' ? (
+              <Image source={require('../../assets/consumer_user.png')} style={styles.logo} />
+            ) : (
+              <Image source={require('../../assets/farmer_user.png')} style={styles.logo} />
+            )}
             <Text style={styles.title}>FarmNamin</Text>
           </View>
 

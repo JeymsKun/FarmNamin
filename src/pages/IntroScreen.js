@@ -1,89 +1,147 @@
 import React, { useState } from "react";
-import { View, Text, StyleSheet, Image, TouchableOpacity, Animated } from "react-native";
+import { View, Text, StyleSheet, Image, TouchableOpacity, Animated, Dimensions, BackHandler } from "react-native";
+import { useNavigation } from "@react-navigation/native";
+import { useFocusEffect } from '@react-navigation/native';
 
-const IntroductionCarousel = () => {
+const { width: screenWidth } = Dimensions.get("window");
+
+const IntroductionCarousel = ({ route }) => {
+  const { role, name } = route.params;
   const [currentSlide, setCurrentSlide] = useState(0);
+  const progressAnim = useState(() => new Animated.Value(0))[0];
+  const navigation = useNavigation();
+
+  useFocusEffect(
+    React.useCallback(() => {
+      const onBackPress = () => {
+        return true;
+      };
+
+      BackHandler.addEventListener('hardwareBackPress', onBackPress);
+
+      return () => BackHandler.removeEventListener('hardwareBackPress', onBackPress);
+    }, [])
+  );
 
   const slides = [
-    // Slide 1
     {
-      title: "Introduction",
       topText: ["Easily direct to the", "consumers."],
       images: [
-        require("./assets/images/farmer.png"),
-        require("./assets/images/handshake.png"),
-        require("./assets/images/tao.png"),
+        require("../../assets/images/farmer.png"),
+        require("../../assets/images/handshake.png"),
+        require("../../assets/images/tao.png"),
       ],
       bottomText: ["Direct contact through", "phone number.", "No online chat, etc."],
     },
-    // Slide 2
+
     {
-      title: "Introduction",
-      image: require("./assets/images/free.png"),
-      description: ["Free advertising for", "farm product products."],
+      image: require("../../assets/images/free.png"),
+      description: ["Free advertising for", "farm produce products."],
       subtext: ["No charges and", "additional fees."],
     },
-    // Slide 3
+
     {
-      title: "Introduction",
       images: [
-        require("./assets/images/id.png"),
-        require("./assets/images/info.png"),
+        require("../../assets/images/id.png"),
+        require("../../assets/images/info.png"),
       ],
       description: "A legitimate account and verified.",
       subtext: ["To ensure the safeguard of", "information."],
     },
-    // Slide 4
+
     {
-      title: "Introduction",
-      topImage: require("./assets/images/search.png"),
+      topImage: require("../../assets/images/search.png"),
       topText: ["You can sell if you are a farmer.", "You can buy if you are a consumer."],
       images: [
-        require("./assets/images/edit.png"),
-        require("./assets/images/chat.png"),
-        require("./assets/images/cv.png"),
-        require("./assets/images/bookmark.png"),
+        require("../../assets/images/editV.png"),
+        require("../../assets/images/chat.png"),
+        require("../../assets/images/quality-control.png"),
+        require("../../assets/images/bookmark.png"),
       ],
       bottomText: ["And many more.", "Take a look and enjoy the rest."],
-    },
-    // Slide 5
-    {
-      topText: ["    You are very welcome,"],
-      bottomText: ["Our Beloved Farmer,"],
-      bottomName: ["  Jojo"],  
     },
   ];
 
   const nextSlide = () => {
     if (currentSlide < slides.length - 1) {
-      setCurrentSlide(currentSlide + 1);
+      Animated.timing(progressAnim, {
+        toValue: currentSlide + 1,
+        duration: 300,
+        useNativeDriver: false,
+      }).start(() => setCurrentSlide(currentSlide + 1));
     } else {
-      setCurrentSlide(0);
+      navigation.navigate('WelcomeScreen', { role, name });
+    }
+  };
+
+  const previousSlide = () => {
+    if (currentSlide > 0) {
+      Animated.timing(progressAnim, {
+        toValue: currentSlide - 1,
+        duration: 300,
+        useNativeDriver: false,
+      }).start(() => setCurrentSlide(currentSlide - 1));
+    }
+  };
+
+  const handleTap = (event) => {
+    const { locationX } = event.nativeEvent;
+    if (locationX < screenWidth / 2) {
+      previousSlide(); 
+    } else {
+      nextSlide(); 
     }
   };
 
   const renderProgressBar = () => {
     return (
       <View style={styles.progressBarContainer}>
-        {slides.map((_, index) => (
-          <Animated.View
-            key={index}
-            style={[
-              styles.progressDot,
-              currentSlide === index && styles.activeDot,
-              currentSlide === index && { transform: [{ scaleX: 3 }, { scaleY: 1.5 }] },
-            ]}
-          />
-        ))}
+        {slides.map((_, index) => {
+          const inputRange = [index - 1, index, index + 1];
+          
+          const width = progressAnim.interpolate({
+            inputRange,
+            outputRange: [10, currentSlide === index ? 60 : 10, 10],
+            extrapolate: "clamp",
+          });
+  
+          const height = progressAnim.interpolate({
+            inputRange,
+            outputRange: [10, currentSlide === index ? 10 : 10, 10],
+            extrapolate: "clamp",
+          });
+  
+          const backgroundColor = progressAnim.interpolate({
+            inputRange,
+            outputRange: ["#4CAF50", "#4CAF50", "#4CAF50"],
+            extrapolate: "clamp",
+          });
+  
+          return (
+            <Animated.View
+              key={index}
+              style={[
+                styles.progressDot,
+                {
+                  width,
+                  height,
+                  backgroundColor,
+                },
+              ]}
+            />
+          );
+        })}
       </View>
     );
-  };
+  };  
+  
 
   return (
-    <TouchableOpacity style={styles.container} onPress={nextSlide}>
-      <Text style={styles.title}>{slides[currentSlide].title}</Text>
+    <TouchableOpacity style={styles.container} onPress={handleTap} activeOpacity={1}>
+      <Text style={styles.title}>Introduction</Text>
+
       <View style={styles.content}>
-        {/* Slide 1 */}
+
         {currentSlide === 0 ? (
           <>
             {slides[currentSlide].topText.map((line, index) => (
@@ -97,9 +155,9 @@ const IntroductionCarousel = () => {
                   key={index}
                   source={image}
                   style={[
-                    image === require("./assets/images/farmer.png") && styles.slide1IconFarmer,
-                    image === require("./assets/images/tao.png") && styles.slide1IconTao,
-                    image === require("./assets/images/handshake.png") && styles.slide1IconHandshake,
+                    image === require("../../assets/images/farmer.png") && styles.slide1IconFarmer,
+                    image === require("../../assets/images/tao.png") && styles.slide1IconTao,
+                    image === require("../../assets/images/handshake.png") && styles.slide1IconHandshake,
                   ]}
                 />
               ))}
@@ -111,7 +169,6 @@ const IntroductionCarousel = () => {
             ))}
           </>
         ) : currentSlide === 1 ? (
-          // Slide 2
           <>
             <Image source={slides[currentSlide].image} style={styles.mainImage} />
             {slides[currentSlide].description.map((line, index) => (
@@ -126,7 +183,6 @@ const IntroductionCarousel = () => {
             ))}
           </>
         ) : currentSlide === 2 ? (
-          // Slide 3
           <>
             <View style={styles.iconsRow}>
               {slides[currentSlide].images.map((image, index) => (
@@ -141,7 +197,6 @@ const IntroductionCarousel = () => {
             ))}
           </>
         ) : currentSlide === 3 ? (
-          // Slide 4
           <>
             <Image source={slides[currentSlide].topImage} style={styles.largeTopImage} />
             {slides[currentSlide].topText.map((text, index) => (
@@ -160,28 +215,9 @@ const IntroductionCarousel = () => {
               </Text>
             ))}
           </>
-        ) : currentSlide === 4 ? (
-          // Slide 5
-          <>
-            {slides[currentSlide].topText.map((text, index) => (
-              <Text key={index} style={styles.welcomeText}>
-                {text}
-              </Text>
-            ))}
-            {slides[currentSlide].bottomText.map((text, index) => (
-              <Text key={index} style={styles.welcomeText}>
-                {text}
-              </Text>
-            ))}
-            {slides[currentSlide].bottomName.map((text, index) => (
-              <Text key={index} style={styles.welcomeName}>
-                {text}
-              </Text>
-            ))}
-          </>
         ) : null}
+        <View style={styles.absoluteProgressBar}>{renderProgressBar()}</View>
       </View>
-      {renderProgressBar()}
     </TouchableOpacity>
   );
 };
@@ -190,30 +226,26 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: "center",
-    alignItems: "center",
     backgroundColor: "#fff",
   },
   title: {
     fontSize: 24,
     fontWeight: "bold",
     color: "#4CAF50",
-    position: "absolute",
-    top: 40,
-    left: 20,
-    textAlign: "left",
-    marginBottom: 20,
+    padding: 10,
+    margin: 10,
   },
   content: {
+    flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    flex: 1,
+    position: 'relative',
   },
   topText: {
     fontSize: 20,
     fontWeight: "bold",
     textAlign: "center",
     color: "#4CAF50",
-    marginBottom: 10,
   },
   slide1IconFarmer: {
     width: 80,
@@ -249,41 +281,23 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     textAlign: "center",
     color: "#4CAF50",
-    marginBottom: 10,
+    marginBottom: 5,
   },
   subtext: {
     fontSize: 22,
     fontWeight: "bold",
     textAlign: "center",
     color: "#4CAF50",
-    marginTop: 5,
   },
   bottomText: {
     fontSize: 20,
     fontWeight: "bold",
     textAlign: "center",
     color: "#4CAF50",
-    marginTop: 5,
   },
   largeTopImage: {
     width: 100,
     height: 100,
-    marginBottom: 20,
-  },
-  welcomeText: {
-    fontSize: 24,
-    textAlign: "right", 
-    color: "#4CAF50",
-    marginBottom: 10,
-    paddingRight: 90, 
-  },
-  
-  welcomeName: {
-    fontSize: 40,
-    fontWeight: "bold",
-    textAlign: "right", 
-    paddingRight: 240, 
-    color: "#4CAF50",
   },
   smallImage: {
     width: 25,
@@ -294,22 +308,30 @@ const styles = StyleSheet.create({
   progressBarContainer: {
     flexDirection: "row",
     justifyContent: "center",
-    marginTop: 30,
-    marginBottom: 30,
+    marginVertical: 10,
   },
   progressDot: {
-    width: 24,
-    height: 5,
-    borderRadius: 10,
+    marginHorizontal: 5,
+    borderRadius: 5,
+  },  
+  activeProgressLine: {
+    width: 40, 
+    height: 10, 
+    borderRadius: 5,
+    backgroundColor: "#4CAF50",
+    marginHorizontal: 5,
+  },
+  inactiveDot: {
     backgroundColor: "#ccc",
-    marginHorizontal: 25,
-    opacity: 0.10,
-    transform: [{ scale: 1.2 }],
   },
   activeDot: {
-    backgroundColor: "#4CAF50", 
-    opacity: 1,
-    transform: [{ scale: 3 }, { scaleX: 2 }, { scaleY: 1.5 }],
+    backgroundColor: "#4CAF50",
+  },
+  absoluteProgressBar: {
+    position: "absolute",
+    bottom: 150,
+    width: "100%",
+    alignItems: "center",
   },
 });
 

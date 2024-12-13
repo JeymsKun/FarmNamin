@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Image, ImageBackground, StyleSheet, Text, TextInput, TouchableOpacity, View, StatusBar, ActivityIndicator, Dimensions, Platform } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
+import { Image, ImageBackground, StyleSheet, Text, TextInput, TouchableOpacity, View, StatusBar, ActivityIndicator, Dimensions, BackHandler } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 const { width, height } = Dimensions.get('window');
 
 export default function SignUpScreen({ navigation, route }) {
-  // const { role } = route.params;
+  const { role } = route.params;
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [agree, setAgree] = useState(false);
@@ -16,6 +17,17 @@ export default function SignUpScreen({ navigation, route }) {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      const onBackPress = () => {
+        return true;
+    };
+      BackHandler.addEventListener('hardwareBackPress', onBackPress);
+
+      return () => BackHandler.removeEventListener('hardwareBackPress', onBackPress);
+    }, [])
+  );
 
   const isStrongPassword = (password) => {
     const regex = /^(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>]).{12,}$/;
@@ -129,7 +141,11 @@ export default function SignUpScreen({ navigation, route }) {
         <View style={styles.container}>
 
           <View style={styles.header}>
-            <Image source={require('../../assets/farm_user.png')} style={styles.logo} />
+            {role === 'consumer' ? (
+              <Image source={require('../../assets/consumer_user.png')} style={styles.logo} />
+            ) : (
+              <Image source={require('../../assets/farmer_user.png')} style={styles.logo} />
+            )}
             <Text style={styles.title}>FarmNamin</Text>
           </View>
 
@@ -185,7 +201,7 @@ export default function SignUpScreen({ navigation, route }) {
           </View>
 
 
-          <TouchableOpacity style={styles.updateButton}>
+          <TouchableOpacity style={styles.updateButton} onPress={handleConfirmPasswordChange}>
             {loading ? (
               <ActivityIndicator size={25} color="white" />
             ) : (

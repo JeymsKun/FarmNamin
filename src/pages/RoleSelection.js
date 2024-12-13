@@ -1,25 +1,26 @@
 import React from 'react';
-import { StyleSheet, View, TouchableOpacity, Text, Image } from 'react-native';
+import { StyleSheet, View, TouchableOpacity, Text, Image, StatusBar } from 'react-native';
 
 export default function RoleScreen({ navigation }) {
 
     const handleRoleSelection = (role) => {
-        navigation.navigate('Login', { role });
+        navigation.navigate('LogIn', { role });
     };
 
     return (
         <View style={styles.container}>
+            <StatusBar hidden={false} />
             <View style={styles.rowWrapper}>
                 <View style={styles.farmerContainer}>
                     <TouchableOpacity style={styles.farmerButton} onPress={() => handleRoleSelection('farmer')}>
-                        <Image source={require('../assets/farmer.png')} style={styles.image} />
+                        <Image source={require('../../assets/farmer_user.png')} style={styles.image} />
                         <Text style={styles.text}>Yes, I am.</Text>
                     </TouchableOpacity>
                 </View>
 
                 <View style={styles.consumerContainer}>
                     <TouchableOpacity style={styles.consumerButton} onPress={() => handleRoleSelection('consumer')}>
-                        <Image source={require('../assets/consumer.png')} style={styles.image} />
+                        <Image source={require('../../assets/consumer_user.png')} style={styles.image} />
                         <Text style={styles.text}>Of course.</Text>
                     </TouchableOpacity>
                 </View>

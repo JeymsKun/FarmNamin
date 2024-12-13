@@ -5,7 +5,7 @@ const Home = () => {
   return (
     <View style={styles.container}>
       <View style={styles.content}>
-        <Text style={styles.title}>Profile Screen for Consumer</Text>
+        <Text style={styles.title}>Profile Screen for Farmer</Text>
       </View>
     </View>
   );

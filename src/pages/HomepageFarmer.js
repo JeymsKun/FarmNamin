@@ -5,31 +5,30 @@ import Carousel from "react-native-reanimated-carousel";
 import Icon from "react-native-vector-icons/FontAwesome";
 
 
-const HomeScreen = () => {
+const HomeScreen = ({ route }) => {
   const navigation = useNavigation();
-
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
   const [scrollY, setScrollY] = useState(new Animated.Value(0));
   const [lastOffset, setLastOffset] = useState(0);
   const [headerVisible, setHeaderVisible] = useState(true);
 
   const carouselImages = [
-    require("../assets/images/farmnamin1.jpg"),
-    require("../assets/images/farmnamin2.jpg"),
-    require("../assets/images/farmnamin3.jpg"),
+    require("../../assets/images/farnamin1.jpg"),
+    require("../../assets/images/farnamin2.jpg"),
+    require("../../assets/images/farmnamin3.jpg"),
   ];
 
   const farmingNews = [
     {
       title: "🌱 How Gen AI Is Shaping The Future of Agriculture",
       description: "AI is revolutionizing the agriculture industry, making it more sustainable and efficient.",
-      image: require("../assets/images/news1.jpg"),
+      image: require("../../assets/images/news1.jpg"),
       link: "https://example.com/gen-ai-agriculture"
     },
     {
       title: "🚜 New Irrigation Tech for Small Farmers",
       description: "Discover how affordable irrigation solutions are transforming small farms.",
-      image: require("../assets/images/news2.jpg"),
+      image: require("../../assets/images/news2.jpg"),
       link: "https://example.com/new-irrigation-tech"
     },
   ];
@@ -38,19 +37,19 @@ const HomeScreen = () => {
     {
       title: "🌾 Daily Tip: Best Practices for Irrigation",
       description: "Learn the most effective irrigation techniques for water conservation and higher yield.",
-      image: require("../assets/images/daily1.jpg"),
+      image: require("../../assets/images/daily1.jpg"),
       link: "https://example.com/daily-tip-irrigation"
     },
     {
       title: "🌻 How to Identify Soil Issues Early",
       description: "Spot the signs of soil issues before they become a problem and save your crops.",
-      image: require("../assets/images/daily2.jpg"),
+      image: require("../../assets/images/daily2.jpg"),
       link: "https://example.com/soil-issues"
     },
     {
       title: "🍅 Tips for Growing Organic Vegetables",
       description: "Start your organic vegetable garden with these simple and proven tips.",
-      image: require("../assets/images/daily3.jpg"),
+      image: require("../../assets/images/daily3.jpg"),
       link: "https://example.com/growing-organic-vegetables"
     },
   ];
@@ -59,19 +58,19 @@ const HomeScreen = () => {
     {
       title: "🌍 The Rise of Vertical Farming",
       description: "Learn how urban farming is changing the agricultural landscape.",
-      image: require("../assets/images/trend1.jpg"),
+      image: require("../../assets/images/trend1.jpg"),
       link: "https://example.com/vertical-farming"
     },
     {
       title: "🌱 Regenerative Agriculture Practices",
       description: "How regenerative farming methods are improving soil health.",
-      image: require("../assets/images/trend2.jpeg"),
+      image: require("../../assets/images/trend2.jpeg"),
       link: "https://example.com/regenerative-agriculture"
     },
     {
       title: "🚜 Smart Farming with IoT",
       description: "Discover the role of IoT in revolutionizing farming practices.",
-      image: require("../assets/images/trend3.jpg"),
+      image: require("../../assets/images/trend3.jpg"),
       link: "https://example.com/smart-farming-iot"
     },
   ];
@@ -109,7 +108,7 @@ const HomeScreen = () => {
             <Text style={styles.greetingText}>Hello, Jojo!</Text>
           </View>
         <TouchableOpacity style={styles.helpContainer} onPress={handleNeedHelp}>
-            <Image source={require("../assets/images/needhelp.png")} style={styles.helpIcon} />
+            <Image source={require("../../assets/images/needhelp.png")} style={styles.helpIcon} />
         </TouchableOpacity>
 
 

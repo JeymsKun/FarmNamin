@@ -3,14 +3,15 @@ import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Modal, Button, Dimensions, StatusBar, BackHandler } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect } from '@react-navigation/native';
 import Feather from '@expo/vector-icons/Feather';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { supabase } from '../backend/supabaseClient';
 
 const { width, height } = Dimensions.get('window');
 
-const ProfileSetUp = () => {
-  const navigation = useNavigation();
+const ProfileSetUp = ({ navigation, route }) => {
+  const { userId, role } = route.params;
   const [FirstName, setFirstName] = useState('');
   const [LastName, setLastName] = useState('');
   const [MiddleName, setMiddleName] = useState('');
@@ -31,6 +32,7 @@ const ProfileSetUp = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [modalMessage, setModalMessage] = useState('');
   const [modalType, setModalType] = useState(''); 
+  const [loading, setLoading] = useState(false);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -56,6 +58,9 @@ const ProfileSetUp = () => {
     if (event.type === 'dismissed') {
       setIsDateCanceled(true); 
       setShowPicker(false);
+      setBirthMonth('');
+      setBirthDay('');
+      setBirthYear('');
       return;
     }
 
@@ -68,17 +73,26 @@ const ProfileSetUp = () => {
     const year = currentDate.getFullYear();
 
     setBirthMonth(month);
-    setBirthDay(day);
-    setBirthYear(year);
+    setBirthDay(day.toString()); 
+    setBirthYear(year.toString()); 
   };
 
-  const handleInformationSubmit = () => {
+  const handleInformationSubmit = async () => {
     setLoading(true);
 
-    let isValid = true;
+    console.log("Submitting Information:");
+    console.log("First Name:", FirstName);
+    console.log("Last Name:", LastName);
+    console.log("Middle Name:", MiddleName);
+    console.log("Suffix:", Suffix);
+    console.log("Age:", Age);
+    console.log("Gender:", genderType);
+    console.log("Birth Month:", birthMonth);
+    console.log("Birth Day:", birthDay);
+    console.log("Birth Year:", birthYear);
+    console.log("User  ID:", userId);
 
-    if (!FirstName || !LastName || !MiddleName || !birthMonth || !birthDay || !birthYear || !genderType) {
-      isValid = false;
+    if (!FirstName || !LastName || !genderType) {
       setModalMessage('Please fill in all required fields.');
       setModalType('error');
       setModalVisible(true);
@@ -86,55 +100,55 @@ const ProfileSetUp = () => {
       return;
     }
 
-    const userData = {
-      FirstName,
-      LastName,
-      MiddleName,
-      Suffix,
-      Age,
-      gender: genderType,
-      BirthMonth: birthMonth,  
-      BirthDay: birthDay,      
-      BirthYear: birthYear,   
-    };
+    const parsedBirthDay = parseInt(birthDay, 10);
+    const parsedBirthYear = parseInt(birthYear, 10);
 
-    fetch('http://192.168.1.56/farmnamin/information.php', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(userData),
-    })
-    .then(response => response.json())  
-    .then(responseData => {
-      setLoading(false);
-
-      if (responseData && responseData.Message) {
-        if (responseData.Message === "Your information has been successfully updated!") {
-          setModalMessage(responseData.Message);
-          setModalType('success');
-          setModalVisible(true);
-
-          setTimeout(() => {
-            navigation.navigate('HomeTabs');
-          }, 2000); 
-        } else {
-          setModalMessage(responseData.Message);
-          setModalType('error');
-          setModalVisible(true);
-        }
-      } else {
-        setModalMessage("Unexpected response format.");
-        setModalType('error');
-        setModalVisible(true);
-      }
-    })
-    .catch(error => {
-      setLoading(false);
-      setModalMessage("Error: " + error.message);
+    if (isNaN(parsedBirthDay) || isNaN(parsedBirthYear)) {
+      setModalMessage('Birth day and year must be valid numbers.');
       setModalType('error');
       setModalVisible(true);
-    });
+      setLoading(false);
+      return;
+    }
+
+    const userData = {
+      first_name: FirstName,
+      last_name: LastName,
+      middle_name: MiddleName,
+      suffix: Suffix,
+      age: Age,
+      gender: genderType,
+      birth_month: birthMonth,
+      birth_day: parsedBirthDay, 
+      birth_year: parsedBirthYear,
+      isInfoComplete: true,
+    };
+
+    console.log("User  Data to Submit:", userData);
+
+    try {
+      const { data, error } = await supabase
+        .from('users') 
+        .update(userData)
+        .eq('id_user', userId);
+
+      if (error) throw error;
+
+      setModalMessage('Your information has been successfully updated!');
+      setModalType('success');
+      setModalVisible(true);
+
+      setTimeout(() => {
+        navigation.navigate('IntroScreen', { role, name: FirstName });
+      }, 2000);
+    } catch (error) {
+      console.log(`Error: ${error.message}`);
+      setModalMessage(`Error: ${error.message}`);
+      setModalType('Error');
+      setModalVisible(true);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -214,7 +228,7 @@ const ProfileSetUp = () => {
         </View>
 
         <Text style={styles.name}>Age</Text>
-        <View style={[styles.inputContainer, ageFocused && (Age.length === 0 || parseInt(Age, 10) > 100) && styles.errorBorder]}>
+        <View style={[styles.inputContainer, ageFocused && Age.length === 0  && styles.errorBorder]}>
           <TextInput
             style={styles.text}
             placeholder="Add Age"
@@ -226,9 +240,6 @@ const ProfileSetUp = () => {
           />
           {ageFocused && Age.length === 0 && (
             <Text style={styles.errorText}>* Age is required.</Text>
-          )}
-          {ageFocused && Age.length > 0 && parseInt(Age, 10) > 100 && (
-            <Text style={styles.errorText}>* Age should not exceed 100.</Text>
           )}
         </View>
 
@@ -259,7 +270,7 @@ const ProfileSetUp = () => {
             onChange={handleDateChange}
           />
         )}
-
+        
         <Text style={styles.name}>Gender</Text>
         <View style={styles.pickerContainer}>
           <Picker
@@ -279,7 +290,7 @@ const ProfileSetUp = () => {
 
         <View style={styles.footerButtons}>
           <View style={{ flex: 1 }} />
-          <TouchableOpacity style={styles.proceedButton} >
+          <TouchableOpacity style={styles.proceedButton} onPress={handleInformationSubmit}>
               <Text style={styles.proceedText}>Proceed</Text>
               <Feather name="arrow-right" size={30} color="#28B805" />
           </TouchableOpacity>

@@ -1,50 +1,14 @@
 import React, { useState } from 'react';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Image, ImageBackground, StyleSheet, Text, TextInput, TouchableOpacity, View, StatusBar, ActivityIndicator, Dimensions } from 'react-native';
+import { Image, ImageBackground, StyleSheet, Text, TextInput, TouchableOpacity, View, StatusBar, ActivityIndicator, Dimensions, Alert } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { supabase } from '../backend/supabaseClient';
 
 const { width, height } = Dimensions.get('window');
 
-export const loginUser  = async (username, password, role) => {
-  const loginAPIURL = "http://192.168.1.56/farmnamin/login.php"; 
-
-  const headers = {
-    'Accept': 'application/json', 
-    'Content-Type': 'application/json', 
-  };
-
-  const data = {
-    username, 
-    password,
-    role, 
-  };
-
-  try {
-    const response = await fetch(loginAPIURL, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(data), 
-    });
-
-    const responseData = await response.json(); 
-
-    if (responseData.Success) {
-      return { 
-        success: true, 
-        id_user: responseData.id_user, 
-        isInfoComplete: responseData.isInfoComplete 
-      }; 
-    } else {
-      return { success: false, message: responseData.Message };
-    }
-  } catch (error) {
-    return { success: false, message: "Error: " + error.message };
-  }
-};
-
 export default function LogIn({ navigation, route }) {
-  // const { role } = route.params;
+  const { role } = route.params;
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -61,33 +25,51 @@ export default function LogIn({ navigation, route }) {
     setErrorPassword(false);
 
     if (!username || !password) {
-      Alert.alert("Validation Error", "Please fill in both username and password.");
-      return;
+        Alert.alert("Validation Error", "Please fill in both username and password.");
+        return;
     }
-  
+
     setLoading(true);
-    const response = await loginUser (username, password, role);
-  
-    if (response.success) {
-      const userId = response.id_user;
+    try {
+        const { data, error } = await supabase
+            .from('users')
+            .select('*')
+            .eq('username', username)
+            .eq('password', password);
 
-      if (!response.isInfoComplete) {
-        console.log("User info not completed. Navigating to Information screen.");
-        navigation.navigate('Information', { userId });
-      } else {
-        console.log("User  info found. Navigating to HomeTabs.");
-        navigation.navigate('HomeTabs');
-      }
-    } else {
-      if (response.message.includes('Username not found or role mismatch.')) {
-        setErrorUsername(true);
-      } else if (response.message.includes('Incorrect password.')) {
-        setErrorPassword(true);
-      }
+        if (error) throw error;
+
+        if (data.length > 0) {
+            const user = data[0];
+
+            if (user.role !== role) {
+            Alert.alert(
+              'Role Mismatch Detected',
+              `We detected that your account belongs to the ${user.role} role. Switching to the correct role now.`
+            );
+
+            navigation.replace('LogIn', { role: user.role });
+          } else {
+            if (!user.isInfoComplete) {
+              navigation.navigate('ProfileSetUp', { userId: user.id_user });
+            } else {
+              navigation.navigate('HomeTabs', { role });
+            }
+          }
+        } else {
+          Alert.alert("Login Failed", "Invalid credentials or role.");
+        }
+    } catch (error) {
+      Alert.alert("Error", error.message);
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
+
+  const headerImage =
+    role === 'farmer'
+      ? require('../../assets/farmer_user.png') 
+      : require('../../assets/consumer_user.png');
 
   return (
     <KeyboardAwareScrollView
@@ -114,7 +96,7 @@ export default function LogIn({ navigation, route }) {
             <Text style={styles.title}>to</Text>
 
             <View style={styles.headerRow}>
-              <Image source={require('../../assets/farm_user.png')} style={styles.logo} />
+              <Image source={headerImage} style={styles.logo} />
               <Text style={styles.title}>FarmNamin</Text>
             </View>
 
@@ -174,27 +156,27 @@ export default function LogIn({ navigation, route }) {
             </View>
 
             <View style={styles.forgotContainer}>
-              <TouchableOpacity onPress={() => navigation.navigate('ResetPasswordScreen')}>
+              <TouchableOpacity onPress={() => navigation.navigate('ResetPasswordScreen', { role })}>
                 <Text style={styles.forgotPassword}>Forgot password?</Text>
               </TouchableOpacity>
             </View>
 
           </View>
 
-          <TouchableOpacity 
-            style={styles.loginButton} 
-            onPress={() => navigation.navigate('HomeTabs')}
-          >
-            <Text>Log In</Text>
+          <TouchableOpacity style={styles.loginButton} onPress={(handleLogin)}>
+            {loading ? (
+              <ActivityIndicator size={25} color="white" />
+            ) : (
+              <Text style={styles.loginButtonText}>Login</Text>
+            )}
           </TouchableOpacity>
+
           <View style={styles.signUpContainer}>
             <Text style={styles.signUp}>
               Don't have an account?
             </Text>
 
-            {/*('SignUp', { role })*/}
-
-            <TouchableOpacity onPress={() => navigation.navigate('SignUp')}> 
+            <TouchableOpacity onPress={() => navigation.navigate('SignUp', { role })}> 
               <Text style={styles.signUpLink}>Sign up</Text>
             </TouchableOpacity>
           </View>

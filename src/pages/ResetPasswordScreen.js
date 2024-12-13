@@ -6,7 +6,8 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 const { width, height } = Dimensions.get('window');
 
-export default function ResetPasswordScreen({ navigation }) {
+export default function ResetPasswordScreen({ navigation, route }) {
+  const { role } = route.params;
   const [phoneNumber, setPhoneNumber] = useState('');
   const [email, setEmail] = useState('');
   const [phoneVerify, setPhoneVerify] = useState(false);
@@ -68,7 +69,11 @@ export default function ResetPasswordScreen({ navigation }) {
         </TouchableOpacity>
 
         <View style={styles.header}>
-          <Image source={require('../../assets/farm_user.png')} style={styles.logo} />
+          {role === 'consumer' ? (
+            <Image source={require('../../assets/consumer_user.png')} style={styles.logo} />
+          ) : (
+            <Image source={require('../../assets/farmer_user.png')} style={styles.logo} />
+          )}
           <Text style={styles.title}>FarmNamin</Text>
         </View>
 
@@ -189,7 +194,7 @@ export default function ResetPasswordScreen({ navigation }) {
           
         {activeVerification && (
           <>
-            <TouchableOpacity style={styles.verifyButton} onPress={() => navigation.navigate('ChangePassword')}>
+            <TouchableOpacity style={styles.verifyButton} onPress={() => navigation.navigate('ChangePassword', { role })}>
               {loading ? (
                 <ActivityIndicator size={25} color="white" />
               ) : (

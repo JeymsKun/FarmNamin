@@ -7,6 +7,10 @@ import LogIn from '../pages/LogIn';
 import ResetPasswordScreen from '../pages/ResetPasswordScreen';
 import ChangePassword from '../pages/ChangePassword';
 import SignUpScreen from '../pages/SignUpScreen';
+import IntroScreen from '../pages/IntroScreen';
+import WelcomeScreen from '../pages/WelcomeNewUser';
+import SplashScreen from '../pages/SplashScreen';
+import RoleSelection from '../pages/RoleSelection';
 
 const Stack = createStackNavigator();
 
@@ -14,7 +18,7 @@ const AppNav = () => {
   return (
     <NavigationContainer>
       <Stack.Navigator
-        initialRouteName="LogIn"
+        initialRouteName="SplashScreen"
         screenOptions={{
           headerShown: false,
           transitionSpec: {
@@ -50,11 +54,15 @@ const AppNav = () => {
           },
         }}
       >
+        <Stack.Screen name="SplashScreen" component={SplashScreen} />
+        <Stack.Screen name="RoleSelection" component={RoleSelection} />
         <Stack.Screen name="LogIn" component={LogIn} />
         <Stack.Screen name="SignUp" component={SignUpScreen} />
+        <Stack.Screen name="ProfileSetUp" component={ProfileSetUp} />
         <Stack.Screen name="ResetPasswordScreen" component={ResetPasswordScreen} />
         <Stack.Screen name="ChangePassword" component={ChangePassword}/>
-        <Stack.Screen name="ProfileSetUp" component={ProfileSetUp} />
+        <Stack.Screen name="IntroScreen" component={IntroScreen} />
+        <Stack.Screen name="WelcomeScreen" component={WelcomeScreen} />
         <Stack.Screen name="HomeTabs" component={HomeTabs} />
 
       </Stack.Navigator>

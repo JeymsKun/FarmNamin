@@ -2,14 +2,31 @@ import React, { useRef, useState, useEffect } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator, CardStyleInterpolators } from '@react-navigation/stack';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { View, Animated, Dimensions } from 'react-native';
-import HomeScreen from './../pages/Home';
-import MarketScreen from './../pages/Marketplace'; 
-import ProfileScreen from './../pages/Profile';  
+import { useFocusEffect } from '@react-navigation/native';
+import { View, Animated, Dimensions, BackHandler } from 'react-native';
+import MarketScreen from './../pages/Marketplace';
+import ProductScreen from './../pages/Product';
+import ProfileScreen from './../pages/Profile';
+import ProfileFarmer from './../pages/ProfileFarmer';  
+import HomepageFarmer from './../pages/HomepageFarmer';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
 const { width } = Dimensions.get('window');
+
+const ProductStack = () => {
+    return (
+        <Stack.Navigator
+            screenOptions={{
+                headerShown: false,
+                cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS,
+            }}
+        >
+            <Stack.Screen name="FarmerProductScreen" component={ProductScreen} />
+        
+        </Stack.Navigator>
+    );
+};
 
 const MarketStack = () => {
     return (
@@ -33,7 +50,7 @@ const HomeStack = () => {
                 cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS,
             }}
         >
-            <Stack.Screen name="Home" component={HomeScreen} />
+            <Stack.Screen name="HomepageFarmer" component={HomepageFarmer} />
         </Stack.Navigator>
     );
 };
@@ -52,9 +69,23 @@ const ProfileStack = () => {
     );
 };
 
-const HomeTabs = () => {
+const ProfileFarmerStack = () => {
+    return (
+        <Stack.Navigator
+            screenOptions={{
+                headerShown: false,
+                cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS,
+            }}
+        >
+            <Stack.Screen name="ProfileFarmer" component={ProfileFarmer} />
+        </Stack.Navigator>
+    );
+};
+
+const HomeTabs = ({ route }) => {
     const translateX = useRef(new Animated.Value(0)).current;
     const [tabWidth, setTabWidth] = useState(width / 3);
+    const { role } = route.params;
 
     const animateLine = (index) => {
             Animated.spring(translateX, {
@@ -62,6 +93,18 @@ const HomeTabs = () => {
             useNativeDriver: true,
         }).start();
     };
+
+    useFocusEffect(
+        React.useCallback(() => {
+            const onBackPress = () => {
+                return true;
+        };
+    
+            BackHandler.addEventListener('hardwareBackPress', onBackPress);
+    
+            return () => BackHandler.removeEventListener('hardwareBackPress', onBackPress);
+        }, [])
+    );
 
     useEffect(() => {
         const handleResize = () => {
@@ -88,11 +131,15 @@ const screenOptions = {
                     tabBarIcon: ({ color, size }) => {
                         let iconName;
                         if (route.name === 'HomeScreen') {
-                            iconName = 'home-outline';
+                            iconName = role === 'consumer' ? 'home-outline' : 'home-outline';
                         } else if (route.name === 'MarketScreen') {
-                            iconName = 'storefront-outline';
+                            iconName = role === 'consumer' ? 'storefront-outline' : 'product-house';
+                        } else if (route.name === 'ProductScreen') {
+                            iconName = 'nutrition-outline';  
                         } else if (route.name === 'ProfileScreen') {
                             iconName = 'person-outline';
+                        } else if (route.name === 'ProfileFarmerScreen') {
+                            iconName = 'person-outline'; 
                         }
                         return <Ionicons name={iconName} size={size} color={color} />;
                     },
@@ -102,7 +149,7 @@ const screenOptions = {
                 tabBarStyle: { 
                     position: 'relative', 
                     display: 'flex', 
-                    height: 65, 
+                    height: 55, 
                     backgroundColor: '#f5f5f5',
                 },
                 tabBarLabelStyle: { fontSize: 14, fontFamily: 'Poppins-Bold', marginBottom: 9 }, 
@@ -111,25 +158,39 @@ const screenOptions = {
                 screenListeners={({ route }) => ({
                     tabPress: (e) => {
                         let index;
+                        
                         if (route.name === 'HomeScreen') {
-                        index = 0;
+                            index = 0;
                         } else if (route.name === 'MarketScreen') {
-                        index = 1;
+                            index = role === 'consumer' ? 1 : 2;
+                        } else if (route.name === 'ProductScreen') {
+                            index = 1;
                         } else if (route.name === 'ProfileScreen') {
-                        index = 2;
+                            index = 2;
+                        } else if (route.name === 'ProfileFarmerScreen') {
+                            index = 2;
                         }
+                        
                         animateLine(index);
                     },
                 })}
             >
-                {/* HomeScreen Stack */}
-                <Tab.Screen name="HomeScreen" component={HomeStack} options={{ title: 'Home' }}/>
+                {/* For both consumer and farmer */}
+                <Tab.Screen name="HomeScreen" component={HomeStack} options={{ title: 'Home' }} />
 
-                {/* MarketScreen Stack */}
-                <Tab.Screen name="MarketScreen" component={MarketStack} options={{ title: 'Marketplace' }} />
+                {/* Marketplace/Products */}
+                {role === 'consumer' ? (
+                    <Tab.Screen name="MarketScreen" component={MarketStack} options={{ title: 'Marketplace' }} />
+                ) : (
+                    <Tab.Screen name="ProductScreen" component={ProductStack} options={{ title: 'Product' }} />
+                )}
 
-                {/* ProfileScreen Stack */}
-                <Tab.Screen name="ProfileScreen" component={ProfileStack} options={{ title: 'Profile' }}/>
+                {/* Consumer and Farmer Profiles */}
+                {role === 'consumer' ? (
+                    <Tab.Screen name="ProfileScreen" component={ProfileStack} options={{ title: 'Profile' }} />
+                ) : (
+                    <Tab.Screen name="ProfileFarmerScreen" component={ProfileFarmerStack} options={{ title: 'Profile' }} />
+                )}
                 
             </Tab.Navigator>
 
@@ -137,7 +198,7 @@ const screenOptions = {
                 style={{
                 justifyContent: 'center',
                 position: 'absolute', 
-                bottom: 5, 
+                bottom: 2, 
                 left: tabWidth / 6, 
                 width: tabWidth / 1.5,
                 height: 6, 
