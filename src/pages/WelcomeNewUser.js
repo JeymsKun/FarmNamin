@@ -107,17 +107,18 @@ const styles = StyleSheet.create({
         padding: 10,
     },
     topText: {
-        fontSize: 26,
-        fontWeight: "bold",
+        fontSize: 24,
+        fontFamily: 'medium',
         marginBottom: 20,
     },
     bottomText: {
-        fontSize: 26,
+        fontSize: 24,
+        fontFamily: 'medium',
         marginBottom: 20,
     },
     name: {
-        fontSize: 30,
-        fontWeight: "bold",
+        fontSize: 28,
+        fontFamily: 'bold',
         marginBottom: 20,
     },
     loadingContainer: {

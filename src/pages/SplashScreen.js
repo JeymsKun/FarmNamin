@@ -14,7 +14,7 @@ const SplashScreen = () => {
     }).start(() => {
       setTimeout(() => {
         navigation.navigate('RoleSelection'); 
-      }, 500); 
+      }, 3000); 
     });
   }, [navigation, scaleAnim]);
   
@@ -33,7 +33,7 @@ const SplashScreen = () => {
               transform: [{ scale: scaleAnim }],
               opacity: scaleAnim, 
               textShadowColor: 'rgba(0, 0, 0, 0.75)',
-              textShadowOffset: { width: 2, height: 2 },
+              textShadowOffset: { width: 0, height: 4 },
               textShadowRadius: 6, 
             },
           ]}
@@ -62,9 +62,9 @@ const styles = StyleSheet.create({
   },
   title: {
     marginTop: 20,
-    fontSize: 40,
+    fontSize: 32,
     color: '#12C824',
-    fontWeight: 'bold',
+    fontFamily: 'bold',
   },
 });
 

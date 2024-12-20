@@ -8,7 +8,9 @@ import AntDesign from 'react-native-vector-icons/AntDesign';
 import { useNavigation } from '@react-navigation/native';
 import { format, parseISO } from 'date-fns'
 import 'react-native-get-random-values'; 
-import { v4 as uuidv4 } from 'uuid';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useAuth } from '../hooks/useAuth'; 
+import { supabase } from '../backend/supabaseClient';
 
 const { width } = Dimensions.get('window');
 
@@ -17,7 +19,8 @@ configureReanimatedLogger({
   strict: false, 
 });
 
-const ProductScreen = ({ route }) => {
+const ProductScreen = () => {
+  const { user } = useAuth();
   const [activeIndex, setActiveIndex] = useState(0);
   const navigation = useNavigation();
   const [selectedButton, setSelectedButton] = useState('posts');
@@ -28,10 +31,108 @@ const ProductScreen = ({ route }) => {
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [selectedImages, setSelectedImages] = useState([]);
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [menuTimeout, setMenuTimeout] = useState(null); 
   const menuTimeoutRef = useRef(null);
-  const { post, newProduct, updatedPost, updatedProduct } = route.params || {};
+  const subscriptionRef = useRef(null);
+
+  useEffect(() => {
+      if (user) {
+        console.log('Current user navigating to Product Screen:', user);
+        loadData(); 
+      }
+  }, [user]); 
+
+  const loadSelectedPost = async () => {
+    try {
+        const storedPosts = await AsyncStorage.getItem('posts');
+        if (storedPosts) {
+            const posts = JSON.parse(storedPosts);
+            console.log('Loaded post:', posts);
+            setPosts(posts);
+        }
+    } catch (error) {
+        console.error('Failed to load selected post:', error);
+    }
+  };
+
+  const saveSelectedPost = async (posts) => {
+      try {
+          await AsyncStorage.setItem('posts', JSON.stringify(posts));
+          console.log('Posts saved to AsyncStorage:', posts);
+      } catch (error) {
+          console.error('Failed to save selected post:', error);
+      }
+  };
+
+  useEffect(() => {
+    loadSelectedPost(); 
+  }, []);
+
+  useEffect(() => {
+    saveSelectedPost(posts); 
+  }, [posts]);
+  
+  const loadData = async () => {
+    if (!user) return;
+  
+    try {
+      const { data, error } = await supabase
+        .from('posts')
+        .select('id, description, location, images, created_at')
+        .eq('id_user', user.id_user);
+  
+      if (error) {
+        console.error('Error fetching posts:', error);
+        return;
+      }
+  
+      console.log('Raw fetched posts data:', data);
+  
+      if (data && data.length > 0) {
+        
+        setPosts(data);
+      } else {
+        console.log('No posts found in the database.');
+      }
+    } catch (err) {
+      console.error('Unexpected error loading data:', err);
+    }
+  };
+
+          
+  const listenForChanges = async () => {
+    if (subscriptionRef.current) return;
+
+    try {
+      const subscription = supabase
+        .channel('database_changes')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, async (payload) => {
+          console.log('Database change detected:', payload);
+          await loadData();  
+        })
+        .subscribe((status) => {
+          if (status === 'SUBSCRIBED') {
+            console.log('Successfully subscribed to posts changes.');
+          }
+        });
+      subscriptionRef.current = subscription; 
+    } catch (err) {
+      console.error('Error subscribing to database changes:', err);
+    }
+  };
+          
+  useEffect(() => {
+    loadData().then(() => {
+        listenForChanges();
+    });
+
+    return () => {
+      if (subscriptionRef.current) {
+        supabase.removeSubscription(subscriptionRef.current);
+        subscriptionRef.current = null;
+      }
+    };
+  }, []);
 
   const formatDate = (date) => {
     try {
@@ -50,50 +151,6 @@ const ProductScreen = ({ route }) => {
   };
 
   useEffect(() => {
-    if (newProduct) {
-      const productWithDate = { ...newProduct, id: uuidv4(), date: new Date().toISOString() };
-      setProducts((prevProducts) => [...prevProducts, productWithDate]);
-    }
-  }, [newProduct]);
-
-  useEffect(() => {
-    if (post) {
-      const postWithId = { ...post, id: uuidv4(), date: new Date().toISOString() };
-      setPosts((prevPosts) => [...prevPosts, postWithId]);
-    }
-  }, [post]);
-
-  useEffect(() => {
-    if (updatedProduct) {
-      setProducts((prevProducts) => {
-        const index = prevProducts.findIndex(p => p.id === updatedProduct.id);
-        if (index !== -1) {
-          const updatedProducts = [...prevProducts];
-          updatedProducts[index] = { ...updatedProduct, date: new Date().toISOString() };
-          return updatedProducts;
-        } else {
-          return [...prevProducts, { ...updatedProduct, date: new Date().toISOString() }];
-        }
-      });
-    }
-  }, [updatedProduct]);
-
-  useEffect(() => {
-    if (updatedPost) {
-      setPosts((prevPosts) => {
-        const index = prevPosts.findIndex(p => p.id === updatedPost.id);
-        if (index !== -1) {
-          const updatedPosts = [...prevPosts];
-          updatedPosts[index] = { ...updatedPost, date: new Date().toISOString() };
-          return updatedPosts;
-        } else {
-          return [...prevPosts, { ...updatedPost, date: new Date().toISOString() }];
-        }
-      });
-    }
-  }, [updatedPost]);
-
-  useEffect(() => {
     return () => {
       if (menuTimeoutRef.current) clearTimeout(menuTimeoutRef.current);
     };
@@ -106,14 +163,19 @@ const ProductScreen = ({ route }) => {
     }
   };
 
-  const handleEdit = () => {
+  const handleEdit = async () => {
     if (selectedPost) {
+
+      setPosts([]);
+  
       navigation.navigate('Post', { 
         postToEdit: { 
           ...selectedPost, 
           images: selectedPost.images.map(image => ({ uri: image })) 
         } 
       });
+  
+      await loadData(); 
       setSelectedPost(null);
     }
   };
@@ -205,7 +267,7 @@ const ProductScreen = ({ route }) => {
 
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.marketplaceButton}>
+        <TouchableOpacity style={styles.marketplaceButton} onPress={() => navigation.navigate('Marketplace')}>
           <Text style={styles.marketplaceText}>Go to marketplace</Text>
         </TouchableOpacity>
 
@@ -348,61 +410,62 @@ const ProductScreen = ({ route }) => {
           >
             <Image source={require('../../assets/profit.png')} style={styles.sectionImageGuide} />
               <View style={styles.nameContainerGuide}>
-                <Text style={styles.sectionItemFirstTextGuide}>Agri - Fishery</Text>
+                <Text style={styles.sectionItemFirstTextGuide}>Agri-Fishery</Text>
                 <Text style={styles.sectionItemSecondTextGuide}>Market Prices</Text>
               </View>
           </TouchableOpacity>
         </View>
       </View>
 
-        {/* Bottom Buttons */}
-        <View style={styles.bottomButtonsContainer}>
-          <TouchableOpacity
-            style={styles.bottomButton}
-            onPress={() => setSelectedButton('posts')}
-          >
-            <Text
-              style={[
-                styles.bottomButtonText,
-                { color: selectedButton === 'posts' ? 'green' : 'black' },
-              ]}
-            >
-              See my posts
-            </Text>
-          </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.bottomButton}
-            onPress={() => setSelectedButton('products')}
+      {/* Bottom Buttons */}
+      <View style={styles.bottomButtonsContainer}>
+        <TouchableOpacity
+          style={styles.bottomButton}
+          onPress={() => setSelectedButton('posts')}
+        >
+          <Text
+            style={[
+              styles.bottomButtonText,
+              { color: selectedButton === 'posts' ? 'green' : 'black' },
+            ]}
           >
-            <Text
-              style={[
-                styles.bottomButtonText,
-                { color: selectedButton === 'products' ? 'green' : 'black' },
-              ]}
-            >
-              See my products
-            </Text>
-          </TouchableOpacity>
-        </View>
+            See my posts
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.bottomButton}
+          onPress={() => setSelectedButton('products')}
+        >
+          <Text
+            style={[
+              styles.bottomButtonText,
+              { color: selectedButton === 'products' ? 'green' : 'black' },
+            ]}
+          >
+            See my products
+          </Text>
+        </TouchableOpacity>
+      </View>
 
       {/* Posts Section */}
       {selectedButton === 'posts' && (
         <View style={styles.postsContainer}>
-          {posts.map((postItem) => (
-            <View style={styles.postItem} key={postItem.id}>
+          {posts.map((postItem, index) => (
+            <View style={styles.postItem} key={index}>
               <View style={styles.postInfoContainer}>
-                <Text style={styles.postInfo}>Me • {formatDate(postItem.date)}</Text>
+                <Text style={styles.postInfo}>Me • {formatDate(postItem.created_at)}</Text>
                 <TouchableOpacity onPress={() => toggleMenu(postItem)}>
                   <Icon name="dots-horizontal" size={25} color="black" />
                 </TouchableOpacity>
               </View>
               <Text style={styles.postLocation}>
-                Located in {postItem.location} • Contact Number #{postItem.contact}
+                Located in {postItem.location} • Contact Number #0{user?.phone_number || '------'}
               </Text>
 
-              {postItem.nameDescriptionTitle && (
-                <Text style={styles.postTitle}>{postItem.nameDescriptionTitle}</Text>
+              {postItem.description && (
+                <Text style={styles.postTitle}>{postItem.description}</Text>
               )}
 
               {postItem.images && postItem.images.length > 0 ? (
@@ -413,13 +476,15 @@ const ProductScreen = ({ route }) => {
                         source={{ uri: postItem.images[0] }}
                         style={styles.singleImage}
                         resizeMode="cover"
+                        onLoad={() => console.log('Image loaded successfully')}
+                        onError={(error) => console.error('Image loading error:', error.nativeEvent.error)}
                       />
                     ) : postItem.images.length === 2 ? (
                       <View style={styles.doubleImageContainer}>
-                        {postItem.images.map((imageUri, index) => (
+                        {postItem.images.map((imageURL, index) => (
                           <Image
                             key={index}
-                            source={{ uri: imageUri }}
+                            source={{ uri: imageURL }} 
                             style={styles.doubleImage}
                             resizeMode="cover"
                           />
@@ -427,10 +492,10 @@ const ProductScreen = ({ route }) => {
                       </View>
                     ) : (
                       <View style={styles.moreImagesContainer}>
-                        {postItem.images.slice(0, 3).map((imageUri, index) => (
+                        {postItem.images.slice(0, 3).map((imageURL, index) => (
                           <Image
                             key={index}
-                            source={{ uri: imageUri }}
+                            source={{ uri: imageURL }} 
                             style={styles.gridImage}
                             resizeMode="cover"
                           />
@@ -448,17 +513,14 @@ const ProductScreen = ({ route }) => {
                 <Text style={styles.noImagesText}>No images available</Text>
               )}
 
-              {/* Inline Edit/Delete Options */}
               {selectedPost && selectedPost.id === postItem.id && (
                 <View style={styles.inlineMenuContainer}>
                 
-                  {/* Edit Button */}
                   <TouchableOpacity onPress={handleEdit} style={styles.inlineMenuItem}>
                     <Icon name="pencil" size={20} color="black" /> 
                     <Text style={styles.menuText}>Edit</Text>
                   </TouchableOpacity>
-                  
-                  {/* Delete Button */}
+
                   <TouchableOpacity onPress={handleDelete} style={styles.inlineMenuItem}>
                     <Icon name="trash-can" size={20} color="black" /> 
                     <Text style={styles.menuText}>Delete</Text>
@@ -471,78 +533,6 @@ const ProductScreen = ({ route }) => {
         </View>
       )}
 
-      {/* Product Post Section */}
-      {selectedButton === 'products' && (
-        <View style={styles.productContainer}>
-          {products.map((product) => (
-            <View key={product.id} style={styles.productItem}>
-              <Text style={styles.productDate}>Created on {formatDate(product.date)}</Text>
-                <Image 
-                  source={{ uri: product.images[0] }} 
-                  style={styles.productImage}
-                  resizeMode="cover"
-                />
-              <View style={styles.productInfoContainer}>
-                <TouchableOpacity style={styles.productButton}>
-                  <Text style={styles.productName}>{product.name}</Text>
-                  <View style={styles.priceContainer}>
-                    <Text style={styles.productPrice}>₱ {formatPrice(product.price)}</Text>
-                    <TouchableOpacity onPress={() => toggleMenuProduct(product)} style={styles.dotsButton}>
-                      <Icon name="dots-horizontal" size={25} color="black" />
-                    </TouchableOpacity>
-                  </View>
-                </TouchableOpacity>
-              </View>
-
-             {/* Inline Edit/Delete Options */}
-            {selectedProduct && selectedProduct.id === product.id && (
-              <View style={styles.inlineMenuContainer}>
-                
-                {/* Edit Button */}
-                <TouchableOpacity onPress={handleEditProduct} style={styles.inlineMenuItem}>
-                  <Icon name="pencil" size={20} color="black" /> 
-                  <Text style={styles.menuText}>Edit</Text>
-                </TouchableOpacity>
-                
-                {/* Delete Button */}
-                <TouchableOpacity onPress={handleDeleteProduct} style={styles.inlineMenuItem}>
-                  <Icon name="trash-can" size={20} color="black" /> 
-                  <Text style={styles.menuText}>Delete</Text>
-                </TouchableOpacity>
-
-              </View>
-            )}
-
-            </View>
-          ))}
-        </View>
-      )}
-
-      {/* Modal for Enlarged Image */}
-      <Modal visible={isModalVisible} transparent={true} animationType="fade">
-        <View style={styles.modalOverlay}>
-          
-          {/* Modal Content */}
-          <View style={styles.modalContent}>
-            {/* Close Button */}
-            <TouchableOpacity onPress={closeImageModal} style={styles.closeButton}>
-              <Icon name="close" size={30} color="white"/>
-            </TouchableOpacity>
-
-            <Text style={styles.imageIndexText}>
-              {currentImageIndex + 1}/{selectedImages.length}
-            </Text>
-
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              {selectedImages.map((imageUri, index) => (
-                <Image key={index} source={{ uri: imageUri }} style={styles.modalImage} />
-              ))}
-            </ScrollView>
-
-          </View>
-        </View>
-      </Modal>
-
       {loading && <ActivityIndicator size={30} color="green" />}
       
     </ScrollView>
@@ -552,7 +542,7 @@ const ProductScreen = ({ route }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#ffffff',
   },
   carouselSection: {
     alignItems: 'center',
@@ -605,7 +595,7 @@ const styles = StyleSheet.create({
   },
   marketplaceText: {
     fontSize: 14,
-    fontFamily: 'Poppins-Bold',
+    fontFamily: 'bold',
     color: 'black',
   },
   notificationButton: {
@@ -615,7 +605,7 @@ const styles = StyleSheet.create({
   },
   notificationText: {
     color: 'green',
-    fontFamily: 'Poppins-Bold',
+    fontFamily: 'bold',
     fontSize: 14,
     marginLeft: 5,
   },
@@ -659,12 +649,12 @@ const styles = StyleSheet.create({
     width: '100%',                           
   },
   sectionTitleTool: {
-    fontSize: 16,
-    fontFamily: 'Poppins-Bold',
+    fontSize: 14,
+    fontFamily: 'bold',
     color: 'black',
   },
   questioncircleTool: {
-    marginLeft: 10,
+    marginLeft: 5,
     marginBottom: 2,        
   },
   questionButtonTool: {
@@ -693,12 +683,12 @@ const styles = StyleSheet.create({
   sectionItemFirstTextTool: {
     lineHeight: 14,
     fontSize: 12,
-    fontFamily: 'Poppins-Regular',
+    fontFamily: 'regular',
   },
   sectionItemSecondTextTool: {
     lineHeight: 14,
     fontSize: 12,
-    fontFamily: 'Poppins-Regular',
+    fontFamily: 'regular',
   },
   sectionGuide: {
     paddingHorizontal: 20,
@@ -710,12 +700,12 @@ const styles = StyleSheet.create({
     width: '100%',                           
   },
   sectionTitleGuide: {
-    fontSize: 16,
-    fontFamily: 'Poppins-Bold',
+    fontSize: 14,
+    fontFamily: 'bold',
     color: 'black',
   },
   questioncircleGuide: {
-    marginLeft: 10,
+    marginLeft: 5,
     marginBottom: 2,        
   },
   questionButtonGuide: {
@@ -744,12 +734,12 @@ const styles = StyleSheet.create({
   sectionItemFirstTextGuide: {
     lineHeight: 14,
     fontSize: 12,
-    fontFamily: 'Poppins-Regular',
+    fontFamily: 'regular',
   },
   sectionItemSecondTextGuide: {
     lineHeight: 14,
     fontSize: 12,
-    fontFamily: 'Poppins-Regular',
+    fontFamily: 'regular',
   },
   bottomButtonsContainer: {
     flexDirection: 'row',
@@ -763,7 +753,7 @@ const styles = StyleSheet.create({
   },
   bottomButtonText: {
     fontSize: 14,
-    fontFamily: 'Poppins-Medium',
+    fontFamily: 'medium',
   },
   postsContainer: {
     paddingHorizontal: 20,
@@ -775,16 +765,16 @@ const styles = StyleSheet.create({
   },
   postInfo: {
     fontSize: 12,
-    fontFamily: 'Poppins-Regular',
+    fontFamily: 'regular',
   },
   postLocation: {
     lineHeight: 13,
     fontSize: 12,
-    fontFamily: 'Poppins-Regular',
+    fontFamily: 'regular',
   },
   postTitle: {
     fontSize: 16,
-    fontFamily: 'Poppins-Medium',
+    fontFamily: 'medium',
     color: '#333',
   },
   postDescription: {
@@ -836,7 +826,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   menuText: {
-    fontFamily: 'Poppins-Regular',
+    fontFamily: 'regular',
   },
   imageContainer: {
     marginTop: 10,
@@ -867,7 +857,7 @@ const styles = StyleSheet.create({
     right: 25,
     color: 'white',
     fontSize: 16,
-    fontFamily: 'Poppins-Bold',
+    fontFamily: 'bold',
   },
   modalImage: {
     width: width * 0.8,
@@ -904,7 +894,7 @@ const styles = StyleSheet.create({
     top: 10,
     right: 10,
     fontSize: 16,
-    fontFamily: 'Poppins-Bold',
+    fontFamily: 'bold',
     color: 'white',
   },
   noImagesText: {
@@ -936,18 +926,18 @@ const styles = StyleSheet.create({
   },
   productName: {
     fontSize: 18,
-    fontFamily: 'Poppins-Medium',
+    fontFamily: 'medium',
     marginTop: 10,
   },
   productPrice: {
     fontSize: 16,
-    fontFamily: 'Poppins-Medium',
+    fontFamily: 'medium',
     marginRight: 10, 
     color: '#4CAF50',
   },
   productDate: {
     fontSize: 12,
-    fontFamily: 'Poppins-Regular',
+    fontFamily: 'regular',
   },
 });
 

@@ -9,6 +9,18 @@ import ProductScreen from './../pages/Product';
 import ProfileScreen from './../pages/Profile';
 import ProfileFarmer from './../pages/ProfileFarmer';  
 import HomepageFarmer from './../pages/HomepageFarmer';
+import PostScreen from './../pages/Post';
+import CalendarScreen from '../pages/Calendar';
+import SchedulerScreen from '../pages/Scheduler';
+import FinanceScreen from '../pages/Finance';
+import TagScreen from '../pages/Tag';
+import FinancialLogScreen from '../pages/FinancialLog';
+import OverviewBalanceScreen from '../pages/OverviewBalance';
+import AccountScreen from '../pages/Account';
+import ShowAccountScreen from '../pages/ShowAccount';
+import TipsScreen from '../pages/Tips';
+import WeatherScreen from '../pages/Weather';
+import MarketPriceScreen from '../pages/MarketPrice';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -23,6 +35,19 @@ const ProductStack = () => {
             }}
         >
             <Stack.Screen name="FarmerProductScreen" component={ProductScreen} />
+            <Stack.Screen name="Post" component={PostScreen} />
+            <Stack.Screen name="Calendar" component={CalendarScreen}/>
+            <Stack.Screen name="Scheduler" component={SchedulerScreen}/>
+            <Stack.Screen name="Finance" component={FinanceScreen}/>
+            <Stack.Screen name="Tag" component={TagScreen}/>
+            <Stack.Screen name="FinancialLog" component={FinancialLogScreen}/>
+            <Stack.Screen name="OverviewBalance" component={OverviewBalanceScreen}/>
+            <Stack.Screen name="Account" component={AccountScreen}/>
+            <Stack.Screen name="ShowAccount" component={ShowAccountScreen}/>
+            <Stack.Screen name="Marketplace" component={MarketScreen} />
+            <Stack.Screen name="Tips" component={TipsScreen}/>
+            <Stack.Screen name="Weather" component={WeatherScreen}/>
+            <Stack.Screen name="MarketPrice" component={MarketPriceScreen}/>
         
         </Stack.Navigator>
     );
@@ -152,7 +177,7 @@ const screenOptions = {
                     height: 55, 
                     backgroundColor: '#f5f5f5',
                 },
-                tabBarLabelStyle: { fontSize: 14, fontFamily: 'Poppins-Bold', marginBottom: 9 }, 
+                tabBarLabelStyle: { fontSize: 14, fontFamily: 'medium', marginBottom: 7 }, 
                 tabBarIconStyle: { size: 24, marginTop: 1 },
                 })}
                 screenListeners={({ route }) => ({

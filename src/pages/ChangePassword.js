@@ -170,7 +170,7 @@ export default function SignUpScreen({ navigation, route }) {
                 <Text style={styles.errorText}>* Password is required.</Text>
               )}
               {password && !isStrongPassword(password) && (
-                <Text style={styles.errorText}>* Password must be 12+ chars, include an uppercase, number, and special char.</Text>
+                <Text style={styles.errorLongText}>* Password must be 12+ chars, an uppercase, number, and special char.</Text>
               )}
             </View>
 
@@ -232,9 +232,9 @@ const styles = StyleSheet.create({
     resizeMode: 'cover',
   },
   title: {
-    fontSize: 50,
+    fontSize: 32,
+    fontFamily: 'bold',
     color: '#12C824',
-    fontWeight: 'bold',
     textShadowColor: 'rgba(0, 0, 0, 0.5)',
     textShadowOffset: { width: 1, height: 4 },
     textShadowRadius: 5,
@@ -262,9 +262,18 @@ const styles = StyleSheet.create({
   errorText: {
     color: 'red',
     fontSize: 12,
+    fontFamily: 'regular',
     position: 'absolute', 
-    bottom: -15, 
+    bottom: -18, 
     left: 10, 
+  },
+  errorLongText: {
+    color: 'red',
+    fontSize: 9,
+    fontFamily: 'medium',
+    position: 'absolute',
+    bottom: -15,
+    left: 10,
   },
   errorBorder: {
     borderWidth: 1,
@@ -272,12 +281,14 @@ const styles = StyleSheet.create({
   },
   input: {  
     padding: 10,
-    fontSize: 18,
+    fontSize: 14,
+    fontFamily: 'regular',
     color: 'black',
     flex: 1, 
   },
   inputText: {
-    fontSize: 16, 
+    fontSize: 14,
+    fontFamily: 'regular', 
     color: 'white',
   },
   updateButton: {
@@ -291,6 +302,6 @@ const styles = StyleSheet.create({
   updateButtonText: {
     color: '#fff',
     fontSize: 16,
-    fontWeight: 'bold',
+    fontFamily: 'medium',
   },
 });

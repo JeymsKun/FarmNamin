@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Image, ImageBackground, StyleSheet, Text, TextInput, TouchableOpacity, View, StatusBar, ActivityIndicator, Dimensions, Platform } from 'react-native';
+import { Image, ImageBackground, StyleSheet, Text, TextInput, TouchableOpacity, View, StatusBar, ActivityIndicator, Dimensions, Platform, Alert } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { supabase } from '../backend/supabaseClient';
 
@@ -9,20 +9,17 @@ const { width, height } = Dimensions.get('window');
 
 export default function SignUpScreen({ navigation, route }) {
   const { userId, role } = route.params;
-  const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [agree, setAgree] = useState(false);
-  const [usernameFocused, setUsernameFocused] = useState(false);
   const [emailFocused, setEmailFocused] = useState(false);
   const [phoneNumberFocused, setPhoneNumberFocused] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
   const [confirmPasswordFocused, setConfirmPasswordFocused] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [usernameExists, setUsernameExists] = useState(false);
   const [emailExists, setEmailExists] = useState(false);
   const [phoneExists, setPhoneExists] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -35,28 +32,16 @@ export default function SignUpScreen({ navigation, route }) {
   };  
 
   const checkExistingUsers = async () => {
-    const { data: usernameData, error: usernameError } = await supabase
-      .from('users')
-      .select('username')
-      .ilike('username', username);
 
     const { data: emailData, error: emailError } = await supabase
       .from('users')
       .select('email')
       .ilike('email', email);
 
-    const { data: phoneData, error: phoneError } = await supabase
+      const { data: phoneData, error: phoneError } = await supabase
       .from('users')
-      .select('phoneNumber')
-      .eq('phoneNumber', phoneNumber);
-
-    if (usernameData.length > 0) {
-      setUsernameExists(true);
-      setTimeout(() => setLoading(false), 2000);
-    } else {
-      setUsernameExists(false);
-      setTimeout(() => setLoading(false), 2000);
-    }
+      .select('phone_number')
+      .eq('phone_number', phoneNumber);
 
     if (emailData.length > 0) {
       setEmailExists(true);
@@ -74,67 +59,77 @@ export default function SignUpScreen({ navigation, route }) {
       setTimeout(() => setLoading(false), 2000);
     }
 
-    return usernameData.length === 0 && emailData.length === 0 && phoneData.length === 0;
+    return emailData.length === 0 && phoneData.length === 0;
   };
 
   const handleSignUpSubmit = async () => {
     setLoading(true);
-
-    if (!username || !email || !phoneNumber || !password || !confirmPassword || !agree) {
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      return;
-    }
-
-    if (!isValidEmail(email)) {
-      return;
-    }
-
-    if (!isStrongPassword(password)) {
-
-      return;
-    }
-
-    const isUnique = await checkExistingUsers();
-    if (!isUnique) {
-      return;
-    }
-
+  
     try {
-      const { data, error } = await supabase
-        .from('users')
-        .insert({
-          username,
-          email,
-          phoneNumber,
-          password,
-          role,
-          isInfoComplete: false,
-          agree: agree ? "yes" : "no"
-        })
-        .select('id_user') 
-        .single();
-
-      if (error) {
-        throw error; 
+      if (!email || !phoneNumber || !password || !confirmPassword || !agree) {
+        Alert.alert('Error', 'All fields are required.');
+        return;
+      }
+  
+      if (password !== confirmPassword) {
+        Alert.alert('Error', 'Passwords do not match.');
+        return;
+      }
+  
+      if (!isValidEmail(email)) {
+        Alert.alert('Error', 'Invalid email format.');
+        return;
+      }
+  
+      if (!isStrongPassword(password)) {
+        Alert.alert('Error', 'Password must be at least 12 characters, including an uppercase letter, a number, and a special character.');
+        return;
       }
 
-      const userId = data?.id_user; 
+      const canSignUp = await checkExistingUsers();
 
-      if (!userId) {
-          throw new Error('User ID not generated.');
+      if (!canSignUp) {
+        setLoading(false);
+        return;
       }
 
-      navigation.navigate('ProfileSetUp', { userId, role });
+      console.log('Attempting to sign up with Supabase...');
 
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            phone_number: phoneNumber,
+            role,  
+            is_info_complete: false,
+            agree: agree ? "yes" : "no",
+          }
+        }
+      });
+      
+      if (authData) {
+        console.log('User signed up:', authData);
+        console.log('Confirmming password:', password);
+      }
+  
+      if (authError) {
+        Alert.alert('Sign-Up Error', authError.message);
+        return;
+      }
+  
+      console.log('User successfully signed up:', authData);
+      
+      Alert.alert('Success', 'User signed up successfully.');
+  
+      navigation.navigate('ProfileSetUp', { userId: authData.user.id, role });
+  
     } catch (error) {
-      Alert.alert('Sign-Up Error', error.message); 
+      Alert.alert('Sign-Up Error', error.message);
     } finally {
-      setTimeout(() => setLoading(false), 2000);
+      setLoading(false);
     }
-  };
+  };  
 
   return (
     <KeyboardAwareScrollView
@@ -171,23 +166,6 @@ export default function SignUpScreen({ navigation, route }) {
           </View>
 
           <View style={styles.inputWrapper}>
-            <Text style={styles.inputText}>Username</Text> 
-            <View style={[styles.inputContainer, (usernameExists || (usernameFocused && username.length === 0)) && styles.errorBorder]}>
-              <TextInput value={username} 
-                style={styles.input} 
-                onChangeText={setUsername}  
-                placeholder='Username'
-                placeholderTextColor='#127810'
-                onFocus={() => setUsernameFocused(false)}
-                onBlur={() => setUsernameFocused(true)}
-              /> 
-
-              {usernameFocused && username.length === 0 && (
-                <Text style={styles.errorText}>* Username is required.</Text>
-              )}
-              {usernameExists && <Text style={styles.errorText}>* Username already exists.</Text>}
-            </View>
-            
             <Text style={styles.inputText}>Email Address</Text> 
             <View style={[styles.inputContainer, (emailExists || (emailFocused && (!isValidEmail(email) || email.length === 0))) && styles.errorBorder]}>
               <TextInput
@@ -252,7 +230,7 @@ export default function SignUpScreen({ navigation, route }) {
                 <Text style={styles.errorText}>* Password is required.</Text>
               )}
               {password && !isStrongPassword(password) && (
-                <Text style={styles.errorText}>* Password must be 12+ chars, include an uppercase, number, and special char.</Text>
+                <Text style={styles.errorLongText}>* Password must be 12+ chars, an uppercase, number, and special char.</Text>
               )}
             </View>
 
@@ -290,14 +268,14 @@ export default function SignUpScreen({ navigation, route }) {
                 </Text>
               </TouchableOpacity>
               <Text style={styles.label}>I agree to the </Text>
-              <TouchableOpacity>
+              <TouchableOpacity onPress={() => navigation.navigate('Terms')}>
                 <Text style={[styles.link, { color: agree ? 'white' : 'red' }]}>Terms and Conditions</Text>
               </TouchableOpacity>
             </View>
 
             <View style={styles.checkboxWrapper}>
               <Text style={styles.label}> and </Text>
-              <TouchableOpacity>
+              <TouchableOpacity onPress={() => navigation.navigate('PrivacyPolicy')}>
                 <Text style={[styles.link, { color: agree ? 'white' : 'red' }]}>Privacy Policy</Text>
               </TouchableOpacity>
               <Text style={styles.label}>.</Text>
@@ -340,9 +318,9 @@ const styles = StyleSheet.create({
     resizeMode: 'cover',
   },
   title: {
-    fontSize: 50,
+    fontSize: 32,
+    fontFamily: 'bold',
     color: '#12C824',
-    fontWeight: 'bold',
     textShadowColor: 'rgba(0, 0, 0, 0.5)',
     textShadowOffset: { width: 1, height: 4 },
     textShadowRadius: 5,
@@ -382,7 +360,8 @@ const styles = StyleSheet.create({
   phonePrefix: {
     paddingLeft: 12,
     paddingRight: 8,
-    fontSize: 16,
+    fontSize: 14,
+    fontFamily: 'regular',
   },
   checkboxContainer: {
     alignItems: 'center',
@@ -397,19 +376,30 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 14,
+    fontFamily: 'regular',
     color: 'black',
   },
   link: {
     fontSize: 12,
+    fontFamily: 'medium',
     color: 'blue',
     textDecorationLine: 'none',
   },
   errorText: {
     color: 'red',
     fontSize: 12,
+    fontFamily: 'regular',
     position: 'absolute', 
-    bottom: -15, 
+    bottom: -18, 
     left: 10, 
+  },
+  errorLongText: {
+    color: 'red',
+    fontSize: 9,
+    fontFamily: 'medium',
+    position: 'absolute',
+    bottom: -15,
+    left: 10,
   },
   errorBorder: {
     borderWidth: 1,
@@ -417,12 +407,14 @@ const styles = StyleSheet.create({
   },
   input: {  
     padding: 10,
-    fontSize: 18,
+    fontSize: 14,
     color: 'black',
+    fontFamily: 'regular',
     flex: 1, 
   },
   inputText: {
-    fontSize: 16, 
+    fontSize: 14,
+    fontFamily: 'regular', 
     color: 'white',
   },
   signupButton: {
@@ -436,6 +428,6 @@ const styles = StyleSheet.create({
   signupButtonText: {
     color: '#fff',
     fontSize: 16,
-    fontWeight: 'bold',
+    fontFamily: 'medium',
   },
 });

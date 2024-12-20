@@ -2,10 +2,11 @@ import React, { useState } from "react";
 import { View, Text, ScrollView, Image, StyleSheet, TouchableOpacity, Animated, Alert } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import Carousel from "react-native-reanimated-carousel";
+import { useAuth } from '../hooks/useAuth';
 import Icon from "react-native-vector-icons/FontAwesome";
 
-
 const HomeScreen = ({ route }) => {
+  const { user } = useAuth();
   const navigation = useNavigation();
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
   const [scrollY, setScrollY] = useState(new Animated.Value(0));
@@ -80,7 +81,7 @@ const HomeScreen = ({ route }) => {
   };
 
   const handleNewsClick = (link) => {
-    navigation.navigate("WebView", { link: link });
+    navigation.navigate("WebBrowser", { link: link });
   };
 
   const handleScroll = Animated.event(
@@ -105,7 +106,7 @@ const HomeScreen = ({ route }) => {
       {headerVisible && (
         <View style={styles.headerContainer}>
           <View style={styles.greetingContainer}>
-            <Text style={styles.greetingText}>Hello, Jojo!</Text>
+            <Text style={styles.greetingText}>Hello, {user?.first_name.trim() || 'User'}!</Text>
           </View>
         <TouchableOpacity style={styles.helpContainer} onPress={handleNeedHelp}>
             <Image source={require("../../assets/images/needhelp.png")} style={styles.helpIcon} />

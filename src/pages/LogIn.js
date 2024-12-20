@@ -3,61 +3,62 @@ import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view
 import { LinearGradient } from 'expo-linear-gradient';
 import { Image, ImageBackground, StyleSheet, Text, TextInput, TouchableOpacity, View, StatusBar, ActivityIndicator, Dimensions, Alert } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import { supabase } from '../backend/supabaseClient';
+import CustomAlert from '../support/CustomAlert'; 
+import { useAuth } from '../hooks/useAuth';
 
 const { width, height } = Dimensions.get('window');
 
 export default function LogIn({ navigation, route }) {
   const { role } = route.params;
-  const [username, setUsername] = useState('');
+  const { signInWithEmailPassword, error } = useAuth();
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [errorUsername, setErrorUsername] = useState(false);
+  const [errorEmail, setErrorEmail] = useState(false);
   const [errorPassword, setErrorPassword] = useState(false);
-  const [usernameFocused, setUsernameFocused] = useState(false);
+  const [emailFocused, setEmailFocused] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
   const [loading, setLoading] = useState(false); 
+  const [isCustomAlertVisible, setIsCustomAlertVisible] = useState(false);
+  const [alertTitle, setAlertTitle] = useState('');
+  const [alertMessage, setAlertMessage] = useState('');
 
   const handleLogin = async () => {
-    setUsernameFocused(true);
+    setEmailFocused(true);
     setPasswordFocused(true);
-    setErrorUsername(false);
+    setErrorEmail(false);
     setErrorPassword(false);
 
-    if (!username || !password) {
-        Alert.alert("Validation Error", "Please fill in both username and password.");
+    if (!email || !password) {
+        Alert.alert("Validation Error", "Please fill in both email and password.");
         return;
     }
 
     setLoading(true);
     try {
-        const { data, error } = await supabase
-            .from('users')
-            .select('*')
-            .eq('username', username)
-            .eq('password', password);
+        const user = await signInWithEmailPassword(email, password);
 
-        if (error) throw error;
+        if (user) {
+          if (!user.id_user) {
+            Alert.alert('Critical Error', 'User ID not found.');
+            return;
+          }
 
-        if (data.length > 0) {
-            const user = data[0];
-
-            if (user.role !== role) {
-            Alert.alert(
-              'Role Mismatch Detected',
-              `We detected that your account belongs to the ${user.role} role. Switching to the correct role now.`
-            );
-
-            navigation.replace('LogIn', { role: user.role });
+          if (user.role !== role) {
+            setAlertTitle('Role Mismatch Detected');
+            setAlertMessage(`We detected that your account belongs to the ${user.role} role. Switching to the correct role now.`);
+            setIsCustomAlertVisible(true);
+            
+            setTimeout(() => {
+              navigation.replace('LogIn', { role: user.role });
+            }, 3000);
           } else {
-            if (!user.isInfoComplete) {
+            if (!user.is_info_complete) {
               navigation.navigate('ProfileSetUp', { userId: user.id_user });
             } else {
               navigation.navigate('HomeTabs', { role });
             }
           }
-        } else {
-          Alert.alert("Login Failed", "Invalid credentials or role.");
         }
     } catch (error) {
       Alert.alert("Error", error.message);
@@ -103,29 +104,29 @@ export default function LogIn({ navigation, route }) {
           </View>
 
           <View style={styles.inputWrapper}>
-            <Text style={styles.inputText}>Username or Email</Text> 
-            <View style={[styles.inputContainer, (errorUsername || (usernameFocused && username.length === 0)) && styles.errorBorder]}> 
+            <Text style={styles.inputText}>Email Address</Text> 
+            <View style={[styles.inputContainer, (errorEmail || (emailFocused && email.length === 0)) && styles.errorBorder]}> 
               <TextInput 
-                value={username} 
+                value={email} 
                 style={styles.input} 
-                onChangeText={(text) => setUsername(text)}  
-                placeholder='Username or Email'
+                onChangeText={(text) => setEmail(text)}  
+                placeholder='Email Address'
                 placeholderTextColor='#127810'
-                onFocus={() => setUsernameFocused(false)}
-                onBlur={() => setUsernameFocused(true)} 
+                onFocus={() => setEmailFocused(false)}
+                onBlur={() => setEmailFocused(true)} 
               /> 
 
-              {username.length >= 5 && (
-                <TouchableOpacity onPress={() => setUsername('')}>
+              {email.length >= 5 && (
+                <TouchableOpacity onPress={() => setEmail('')}>
                   <Icon name="close-circle" size={24} color="white" />
                 </TouchableOpacity>
               )}
               
-              {usernameFocused && username.length === 0 && (
-                <Text style={styles.errorText}>* Please enter your username.</Text>
+              {emailFocused && email.length === 0 && (
+                <Text style={styles.errorText}>* Please enter your email address.</Text>
               )}
-              {errorUsername && (
-                <Text style={styles.errorText}>* Username not found.</Text>
+              {errorEmail && (
+                <Text style={styles.errorText}>* Email Address not found.</Text>
               )}
             </View>
       
@@ -183,6 +184,12 @@ export default function LogIn({ navigation, route }) {
        
         </View>
       </ImageBackground>
+      <CustomAlert 
+        visible={isCustomAlertVisible} 
+        title={alertTitle} 
+        message={alertMessage} 
+        onClose={() => setIsCustomAlertVisible(false)} 
+      />
     </KeyboardAwareScrollView>
   );
 }
@@ -213,9 +220,9 @@ const styles = StyleSheet.create({
     height: 100,
   },
   title: {
-    fontSize: 50,
+    fontFamily: 'bold',
+    fontSize: 32,
     color: '#12C824',
-    fontWeight: 'bold',
     textShadowColor: 'rgba(0, 0, 0, 0.5)',
     textShadowOffset: { width: 1, height: 4 },
     textShadowRadius: 5,
@@ -251,6 +258,7 @@ const styles = StyleSheet.create({
   errorText: {
     color: 'red',
     fontSize: 12,
+    fontFamily: 'regular',
     position: 'absolute', 
     bottom: -18, 
     left: 10, 
@@ -261,12 +269,14 @@ const styles = StyleSheet.create({
   },
   input: {  
     padding: 10,
-    fontSize: 18,
+    fontSize: 14,
     color: 'black',
+    fontFamily: 'regular',
     flex: 1, 
   },
   inputText: {
-    fontSize: 16, 
+    fontFamily: 'regular',
+    fontSize: 14, 
     color: 'white',
   },
   forgotContainer: {
@@ -274,7 +284,8 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   forgotPassword: {
-    fontSize: 16,
+    fontFamily: 'medium',
+    fontSize: 14,
     color: 'white',
   },
   loginButton: {
@@ -287,8 +298,8 @@ const styles = StyleSheet.create({
   },
   loginButtonText: {
     color: 'white',
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: 16,
+    fontFamily: 'medium',
   },
   signUpContainer: {
     flexDirection: 'row',
@@ -296,13 +307,14 @@ const styles = StyleSheet.create({
   },
   signUp: {
     marginRight: 5,
-    fontSize: 16,
+    fontSize: 14,
+    fontFamily: 'regular',
     color: 'white',
   },
   signUpLink: {
-    fontSize: 16,
+    fontSize: 14,
     color: '#4BFF5D',
     textDecorationLine: 'underline',
-    fontWeight: 'bold',
+    fontFamily: 'medium',
   },
 });

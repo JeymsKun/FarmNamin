@@ -1,6 +1,6 @@
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
-import { Easing, StyleSheet } from 'react-native';
+import { Easing } from 'react-native';
 import HomeTabs from '../hometabs/HomeTabs';
 import ProfileSetUp from '../pages/ProfileSetUp';
 import LogIn from '../pages/LogIn';
@@ -11,10 +11,15 @@ import IntroScreen from '../pages/IntroScreen';
 import WelcomeScreen from '../pages/WelcomeNewUser';
 import SplashScreen from '../pages/SplashScreen';
 import RoleSelection from '../pages/RoleSelection';
+import ImageViewer from '../support/ImageViewer';
+import PrivacyPolicyScreen from '../pages/PrivacyPolicy';
+import TermsScreen from '../pages/Terms';
+import WebViewScreen from '../support/WebViewScreen';
 
 const Stack = createStackNavigator();
 
 const AppNav = () => {
+  
   return (
     <NavigationContainer>
       <Stack.Navigator
@@ -64,19 +69,15 @@ const AppNav = () => {
         <Stack.Screen name="IntroScreen" component={IntroScreen} />
         <Stack.Screen name="WelcomeScreen" component={WelcomeScreen} />
         <Stack.Screen name="HomeTabs" component={HomeTabs} />
+        <Stack.Screen name="ImageViewer" component={ImageViewer}/>
+        <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen}/>
+        <Stack.Screen name="Terms" component={TermsScreen}/>
+        <Stack.Screen name="WebBrowser" component={WebViewScreen}/>
 
       </Stack.Navigator>
     </NavigationContainer>
   );
 };
 
-const styles = StyleSheet.create({
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-  },
-});
 
 export default AppNav;

@@ -121,7 +121,7 @@ const ProfileSetUp = ({ navigation, route }) => {
       birth_month: birthMonth,
       birth_day: parsedBirthDay, 
       birth_year: parsedBirthYear,
-      isInfoComplete: true,
+      is_info_complete: true,
     };
 
     console.log("User  Data to Submit:", userData);
@@ -138,8 +138,28 @@ const ProfileSetUp = ({ navigation, route }) => {
       setModalType('success');
       setModalVisible(true);
 
+      const { data: userInfo, error: userInfoError } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id_user', userId)
+      .single();
+
+      if (userInfoError) {
+        console.log(`User Info Retrieval Error: ${userInfoError.message}`);
+        setModalMessage('Failed to retrieve user role.');
+        setModalType('error');
+        setModalVisible(true);
+        setLoading(false);
+        return;
+      }
+
+      const userRole = userInfo?.role;
+
+      console.log(`User Role: ${userRole}`);
+
+
       setTimeout(() => {
-        navigation.navigate('IntroScreen', { role, name: FirstName });
+        navigation.navigate('IntroScreen', { role: userRole, name: FirstName });
       }, 2000);
     } catch (error) {
       console.log(`Error: ${error.message}`);
@@ -321,35 +341,35 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   title: {
-    fontSize: 22,
-    fontFamily: 'Poppins-Bold',
-    marginTop: height * 0.02,
+    fontSize: 16,
+    fontFamily: 'bold',
+    marginTop: height * 0.01,
     color: '#000',
   },
   subtitle: {
-    fontSize: 16,
-    marginBottom: height * 0.02,
-    fontFamily: 'Poppins-Medium',
+    fontSize: 14,
+    marginBottom: height * 0.01,
+    fontFamily: 'medium',
     color: '#555',
   },
   name: {
     marginTop: height * 0.01,
     fontSize: 14,
-    fontFamily: 'Poppins-Regular',
+    fontFamily: 'regular',
   },
   inputContainer: {
     width: '100%',
     borderRadius: 10,
     backgroundColor: '#80CF7E',
     height: height * 0.07,
-    marginBottom: 10,
+    marginBottom: 5,
     paddingHorizontal: 20,
     justifyContent: 'center',
     position: 'relative',
   },
   errorText: {
     color: 'red',
-    fontFamily: 'Poppins-Regular',
+    fontFamily: 'regular',
     fontSize: 12,
     position: 'absolute', 
     bottom: -18, 
@@ -357,7 +377,7 @@ const styles = StyleSheet.create({
   },
   text: {
     fontSize: 14,
-    fontFamily: 'Poppins-Regular',
+    fontFamily: 'regular',
   },
   errorBorder: {
     borderWidth: 1,
@@ -373,7 +393,7 @@ const styles = StyleSheet.create({
   },
   birthdateText: {
     fontSize: 14,
-    fontFamily: 'Poppins-Regular',
+    fontFamily: 'regular',
   },
   pickerSection: {
     flexDirection: 'row',
@@ -392,15 +412,17 @@ const styles = StyleSheet.create({
     width: '100%',
     backgroundColor: '#80CF7E',
     borderRadius: 10,
-    marginBottom: 10,
+    marginBottom: 14,
     paddingHorizontal: 10,
   },
   pickerItem: { 
     fontSize: 14,
-    fontFamily: 'Poppins-Regular',  
+    fontFamily: 'regular',  
   },
   picker: {
     flex: 1,
+    fontSize: 14,
+    fontFamily: 'regular', 
   },
   button: {
     position: 'absolute',
@@ -412,11 +434,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  buttonText: {
-    color: '#00B200',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
   proceedButton: {
     flexDirection: 'row',
   },
@@ -424,13 +441,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 10,
   },
   proceedText: {
     padding: 5,
     fontSize: 14,
+    fontFamily: 'medium',
     color: "#28B805",  
-    fontFamily: 'Poppins-Bold',
   },
   modalOverlay: {
     flex: 1,

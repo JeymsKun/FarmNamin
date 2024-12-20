@@ -255,9 +255,9 @@ const styles = StyleSheet.create({
     resizeMode: 'cover',
   },
   title: {
-    fontSize: 50,
+    fontSize: 32,
+    fontFamily: 'bold',
     color: '#12C824',
-    fontWeight: 'bold',
     textShadowColor: 'rgba(0, 0, 0, 0.5)',
     textShadowOffset: { width: 1, height: 4 },
     textShadowRadius: 5,
@@ -284,23 +284,27 @@ const styles = StyleSheet.create({
   },
   input: {  
     padding: 10,
-    fontSize: 18,
+    fontSize: 14,
+    fontFamily: 'regular',
     color: 'black',
     flex: 1, 
   },
   inputSMSEmail: {
     padding: 10,
-    fontSize: 16,
+    fontSize: 12,
+    fontFamily: 'regular',
     color: 'black',
     flex: 1
   },
   inputText: {
-    fontSize: 16, 
+    fontSize: 14,
+    fontFamily: 'regular', 
     color: 'white',
   },
   errorSMSEmailText: {
     color: 'red',
     fontSize: 14,
+    fontFamily: 'regular',
     position: 'absolute', 
     bottom: -20, 
     right: 100,
@@ -308,8 +312,9 @@ const styles = StyleSheet.create({
   errorText: {
     color: 'red',
     fontSize: 12,
+    fontFamily: 'regular',
     position: 'absolute', 
-    bottom: -15, 
+    bottom: -18, 
     left: 10, 
   },
   errorBorder: {
@@ -322,6 +327,7 @@ const styles = StyleSheet.create({
   },
   helperText: {
     fontSize: 14,
+    fontFamily: 'medium',
     color: '#fff',
   },
   verifyButton: {
@@ -351,11 +357,11 @@ const styles = StyleSheet.create({
   resetButtonText: {
     color: '#fff',
     fontSize: 16,
-    fontWeight: 'bold',
+    fontFamily: 'medium',
   },
   resendVerifyText: {
     color: '#fff',
     fontSize: 16,
-    fontWeight: 'bold',
+    fontFamily: 'medium',
   },
 });

@@ -2,7 +2,7 @@
   "expo": {
     "name": "FarmNamin",
     "slug": "FarmNamin",
-    "version": "1.0.0",
+    "version": "1.0.2", 
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -13,9 +13,11 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "version": "1.0.2" 
     },
     "android": {
+      "versionCode": 5, 
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
@@ -23,6 +25,13 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "assetBundlePatterns": [
+      "**/*",
+      "assets/fonts/*"
+    ],
+    "plugins": [
+      "expo-font"
+    ]
   }
 }

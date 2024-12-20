@@ -145,7 +145,7 @@ export default function PrivacyPolicy() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" />
+      <StatusBar hidden={false} />
       <View style={styles.header}>
         <TouchableOpacity onPress={goBack}>
           <Ionicons name="arrow-back" size={30} color="#4CAF50" />

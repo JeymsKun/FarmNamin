@@ -67,13 +67,13 @@ const styles = StyleSheet.create({
         borderRadius: 5,
     },
     text: {
-        fontSize: 16,
-        fontFamily: 'Poppins-Medium',
+        fontFamily: 'regular',
+        fontSize: 14,
         textAlign: 'center',
     },
     questionText: {
-        fontSize: 18,
-        fontFamily: 'Poppins-Medium',
+        fontFamily: 'regular',
+        fontSize: 16,
         marginTop: 20,
     },
 });
