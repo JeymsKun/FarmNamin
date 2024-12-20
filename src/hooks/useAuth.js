@@ -121,6 +121,7 @@ export const useAuth = () => {
       id_user: userId,
       email: userInfo.email,
       first_name: userInfo.first_name,
+      
       phone_number: userInfo.phone_number,
       role: userInfo.role,
       is_info_complete: userInfo.is_info_complete,

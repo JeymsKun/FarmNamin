@@ -8,8 +8,13 @@ import {
   Alert,
   ScrollView,
 } from "react-native";
+import { decode } from 'base64-arraybuffer';
+import { v4 as uuidv4 } from 'uuid';
+import { supabase } from '../backend/supabaseClient';
+import { useAuth } from '../hooks/useAuth';
 
 const VerificationScreen = () => {
+  const { user } = useAuth();
   const [email, setEmail] = useState("jojoterada123@gmail.com");
   const [verificationCode, setVerificationCode] = useState("");
   const [contactVerificationCode, setContactVerificationCode] = useState("");
@@ -47,9 +52,36 @@ const VerificationScreen = () => {
   };
 
   // Document Handling
-  const handleUploadDocument = () => {
-    Alert.alert("Upload Document", "Document uploaded successfully.");
-  };
+  const handleUploadDocumentToSupabase = async (file) => {
+    try {
+      const response = await fetch(file.uri);
+      const blob = await response.blob();
+      const reader = new FileReader();
+      reader.readAsDataURL(blob);
+      reader.onloadend = async () => {
+        const base64data = reader.result;
+        const base64FileData = base64data.split(',')[1];
+  
+        const arrayBuffer = decode(base64FileData);
+  
+        const { error } = await supabase
+          .storage
+          .from('documents')
+          .upload(`${uuidv4()}${file.type === 'application/pdf' ? '.pdf' : '.docx'}`, arrayBuffer, {
+            contentType: file.type,
+          });
+  
+        if (error) {
+          console.error('Error uploading document:', error);
+          return null;
+        }
+  
+        console.log('Document uploaded successfully');
+      };
+    } catch (error) {
+      console.error('Error uploading document:', error);
+    }
+  };  
 
   const handleDeleteDocument = () => {
     setDocumentName("");
@@ -130,7 +162,7 @@ const VerificationScreen = () => {
         onChangeText={setDocumentName}
       />
 
-      <TouchableOpacity style={styles.smallButton} onPress={handleUploadDocument}>
+      <TouchableOpacity style={styles.smallButton} onPress={handleUploadDocumentToSupabase}>
         <Text style={styles.buttonText}>Upload document</Text>
       </TouchableOpacity>
 

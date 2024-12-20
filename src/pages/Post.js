@@ -132,7 +132,6 @@ export default function Post({ navigation, route }) {
         reader.onloadend = async () => {
           const base64data = reader.result; 
           const base64FileData = base64data.split(',')[1]; 
-  
           const arrayBuffer = decode(base64FileData);
 
           const { error } = await supabase

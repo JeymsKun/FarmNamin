@@ -139,10 +139,10 @@ const ProfileSetUp = ({ navigation, route }) => {
       setModalVisible(true);
 
       const { data: userInfo, error: userInfoError } = await supabase
-      .from('users')
-      .select('role')
-      .eq('id_user', userId)
-      .single();
+        .from('users')
+        .select('role')
+        .eq('id_user', userId)
+        .single();
 
       if (userInfoError) {
         console.log(`User Info Retrieval Error: ${userInfoError.message}`);

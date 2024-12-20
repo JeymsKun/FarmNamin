@@ -50,19 +50,19 @@ const ProductCard = () => {
   const feedbacks = [
   {
     name: "John Doe",
-    profileImage: require("./assets/john-doe.png"),  
+    profileImage: require("../../assets/images/john_doe.png"),  
     feedback: "High Quality! Fresh and affordable produce.",
     rating: 5,
   },
   {
     name: "Jane Smith",
-    profileImage: require("./assets/jane-smith.png"),  
+    profileImage: require("../../assets/images/jane_smith.png"),  
     feedback: "Negotiations are smooth. Great farmer!",
     rating: 4,
   },
   {
     name: "Mark Johnson",
-    profileImage: require("./assets/mark-johnson.png"),  
+    profileImage: require("../../assets/images/mark_johnson.png"),  
     feedback: "Exceptional value for money.",
     rating: 5,
   },
@@ -81,7 +81,7 @@ const ProductCard = () => {
 
         {/* Product Image */}
         <Image
-            source={require("./assets/talong(3).png")} 
+            source={require("../../assets/images/talong(3).jpg")} 
             style={styles.farmerImage}
         />
 
@@ -147,7 +147,7 @@ const ProductCard = () => {
           {/* Farmer Details */}
           <View style={styles.farmerContainer}>
             <Image
-            source={require("./assets/RodigoDuterte.png")} // Local image
+            source={require("../../assets/images/RodrigoDuterte.jpg")} // Local image
             style={styles.farmerImage}
             />
             <View>
@@ -164,7 +164,7 @@ const ProductCard = () => {
               {feedbacks.map((feedback, index) => (
                 <View key={index} style={styles.feedbackItem}>
                   <Image
-                    source={{ uri: feedback.profileImage }}
+                    source={feedback.profileImage}
                     style={styles.consumerImage}
                   />
                   <View style={styles.feedbackTextContainer}>

@@ -21,6 +21,9 @@ import ShowAccountScreen from '../pages/ShowAccount';
 import TipsScreen from '../pages/Tips';
 import WeatherScreen from '../pages/Weather';
 import MarketPriceScreen from '../pages/MarketPrice';
+import ProductPostScreen from '../pages/ProductPost';
+import ConsumerScreen from '../pages/Consumer';
+import AdditonalDetailsScreen from '../pages/AdditionalDetails';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -48,6 +51,8 @@ const ProductStack = () => {
             <Stack.Screen name="Tips" component={TipsScreen}/>
             <Stack.Screen name="Weather" component={WeatherScreen}/>
             <Stack.Screen name="MarketPrice" component={MarketPriceScreen}/>
+            <Stack.Screen name="ProductPost" component={ProductPostScreen}/>
+            <Stack.Screen name="AdditionalDetails" component={AdditonalDetailsScreen}/>
         
         </Stack.Navigator>
     );
@@ -102,7 +107,7 @@ const ProfileFarmerStack = () => {
                 cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS,
             }}
         >
-            <Stack.Screen name="ProfileFarmer" component={ProfileFarmer} />
+            <Stack.Screen name="ConsumerScreen" component={ConsumerScreen} />
         </Stack.Navigator>
     );
 };

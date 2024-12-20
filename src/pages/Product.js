@@ -39,6 +39,7 @@ const ProductScreen = () => {
       if (user) {
         console.log('Current user navigating to Product Screen:', user);
         loadData(); 
+        loadProductData();
       }
   }, [user]); 
 
@@ -55,6 +56,19 @@ const ProductScreen = () => {
     }
   };
 
+  const loadSelectedProduct = async () => {
+    try {
+        const storedProduct = await AsyncStorage.getItem('product');
+        if (storedProduct) {
+            const product = JSON.parse(storedProduct);
+            console.log('Loaded post:', product);
+            setProducts(product);
+        }
+    } catch (error) {
+        console.error('Failed to load selected product:', error);
+    }
+  };
+
   const saveSelectedPost = async (posts) => {
       try {
           await AsyncStorage.setItem('posts', JSON.stringify(posts));
@@ -64,13 +78,85 @@ const ProductScreen = () => {
       }
   };
 
+  const saveSelectedProduct = async (product) => {
+    try {
+        await AsyncStorage.setItem('product', JSON.stringify(product));
+        console.log('Product saved to AsyncStorage:', product);
+    } catch (error) {
+        console.error('Failed to save selected product:', error);
+    }
+};
+
   useEffect(() => {
     loadSelectedPost(); 
+    loadSelectedProduct();
   }, []);
 
   useEffect(() => {
     saveSelectedPost(posts); 
-  }, [posts]);
+    saveSelectedProduct(products);
+  }, [posts, products]);
+
+  const loadProductData = async () => {
+    if (!user) return;
+  
+    try {
+      const { data, error } = await supabase
+        .from('product')
+        .select('id, name, price, images, created_at')
+        .eq('id_user', user.id_user);
+  
+      if (error) {
+        console.error('Error fetching product:', error);
+        return;
+      }
+  
+      console.log('Raw fetched product data:', data);
+  
+      if (data && data.length > 0) {
+        
+        setProducts(data);
+      } else {
+        console.log('No product found in the database.');
+      }
+    } catch (err) {
+      console.error('Unexpected error loading data:', err);
+    }
+  };
+
+  const listenForChangesProduct = async () => {
+    if (subscriptionRef.current) return;
+
+    try {
+      const subscription = supabase
+        .channel('database_changes')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'product' }, async (payload) => {
+          console.log('Database change detected:', payload);
+          await loadProductData();  
+        })
+        .subscribe((status) => {
+          if (status === 'SUBSCRIBED') {
+            console.log('Successfully subscribed to product changes.');
+          }
+        });
+      subscriptionRef.current = subscription; 
+    } catch (err) {
+      console.error('Error subscribing to database changes:', err);
+    }
+  };
+          
+  useEffect(() => {
+    loadProductData().then(() => {
+      listenForChangesProduct();
+    });
+
+    return () => {
+      if (subscriptionRef.current) {
+        supabase.removeSubscription(subscriptionRef.current);
+        subscriptionRef.current = null;
+      }
+    };
+  }, []);
   
   const loadData = async () => {
     if (!user) return;
@@ -182,7 +268,6 @@ const ProductScreen = () => {
 
   const handleDeleteProduct = () => {
     if (selectedProduct) {
-
       setProducts((prevProducts) => 
         prevProducts.filter(product => product.id !== selectedProduct.id)
       );
@@ -528,6 +613,57 @@ const ProductScreen = () => {
 
                 </View>
               )}
+            </View>
+          ))}
+        </View>
+      )}
+
+      {/* Product Post Section */}
+      {selectedButton === 'products' && (
+        <View style={styles.productContainer}>
+          
+          {products.map((product, index) => (
+            <View key={index} style={styles.productItem}>
+              {console.log('Check product image:', product.images)}
+              <Text style={styles.productDate}>Created on {formatDate(product.created_at)}</Text>
+                <Image 
+                  source={{ uri: product.images[0] }} 
+                  style={styles.productImage}
+                  resizeMode="cover"
+                  onLoad={() => console.log('Image loaded successfully')}
+                  onError={(error) => console.error('Image loading error:', error.nativeEvent.error)}
+                />
+              <View style={styles.productInfoContainer}>
+                <TouchableOpacity style={styles.productButton}>
+                  <Text style={styles.productName}>{product.name}</Text>
+                  <View style={styles.priceContainer}>
+                    <Text style={styles.productPrice}>₱ {formatPrice(product.price)}</Text>
+                    <TouchableOpacity onPress={() => toggleMenuProduct(product)} style={styles.dotsButton}>
+                      <Icon name="dots-horizontal" size={25} color="black" />
+                    </TouchableOpacity>
+                  </View>
+                </TouchableOpacity>
+              </View>
+
+             {/* Inline Edit/Delete Options */}
+            {selectedProduct && selectedProduct.id === product.id && (
+              <View style={styles.inlineMenuContainer}>
+                
+                {/* Edit Button */}
+                <TouchableOpacity onPress={handleEditProduct} style={styles.inlineMenuItem}>
+                  <Icon name="pencil" size={20} color="black" /> 
+                  <Text style={styles.menuText}>Edit</Text>
+                </TouchableOpacity>
+                
+                {/* Delete Button */}
+                <TouchableOpacity onPress={handleDeleteProduct} style={styles.inlineMenuItem}>
+                  <Icon name="trash-can" size={20} color="black" /> 
+                  <Text style={styles.menuText}>Delete</Text>
+                </TouchableOpacity>
+
+              </View>
+            )}
+
             </View>
           ))}
         </View>
