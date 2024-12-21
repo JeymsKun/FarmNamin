@@ -49,6 +49,7 @@
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",
+    "metro-react-native-babel-preset": "^0.77.0",
     "react-native-asset": "^2.1.1",
     "standard-version": "^9.5.0"
   },

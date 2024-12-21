@@ -4,7 +4,7 @@ import { createStackNavigator, CardStyleInterpolators } from '@react-navigation/
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useFocusEffect } from '@react-navigation/native';
 import { View, Animated, Dimensions, BackHandler } from 'react-native';
-import MarketScreen from './../pages/Marketplace';
+import MarketScreen from './../pages/copiedMarketplace';
 import ProductScreen from './../pages/Product';
 import ProfileScreen from './../pages/Profile';
 import ProfileFarmer from './../pages/ProfileFarmer';  
