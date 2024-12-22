@@ -24,6 +24,8 @@ import MarketPriceScreen from '../pages/MarketPrice';
 import ProductPostScreen from '../pages/ProductPost';
 import ConsumerScreen from '../pages/Consumer';
 import AdditonalDetailsScreen from '../pages/AdditionalDetails';
+import EditProfileScreen from '../pages/EditProfileBackend';
+import ProfileMenuScreenFarmerScreen from '../pages/ProfileMenuScreenFarmer';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -107,7 +109,8 @@ const ProfileFarmerStack = () => {
                 cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS,
             }}
         >
-            <Stack.Screen name="ConsumerScreen" component={ConsumerScreen} />
+            <Stack.Screen name="ProfileFarmer" component={ProfileFarmer} />
+            <Stack.Screen name="ProfileMenuScreenFarmer" component={ProfileMenuScreenFarmerScreen}/>
         </Stack.Navigator>
     );
 };

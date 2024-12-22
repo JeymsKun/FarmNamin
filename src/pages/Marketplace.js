@@ -1,27 +1,45 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TextInput, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { useAuth } from '../hooks/useAuth';
+import { supabase } from '../backend/supabaseClient';
 
 const Marketplace = () => {
+  const { user } = useAuth();
   const [activeCategory, setActiveCategory] = useState('All');
   const [showMarketTip, setShowMarketTip] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [products, setProducts] = useState([]);
+
+  useEffect(() => {
+    if (user) {
+      console.log('Current user navigating to Marketplace Screen:', user);
+      fetchProducts(); 
+    }
+  }, [user])  
+
+  const fetchProducts = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('product')  
+        .select('*');
+
+      if (error) {
+        console.error('Error fetching products:', error);
+      } else {
+        setProducts(data);  
+      }
+    } catch (err) {
+      console.error('Unexpected error fetching products:', err);
+    } };
 
   const handleMarketTip = () => {
     setShowMarketTip(true);
-    setTimeout(() => setShowMarketTip(false), 3000); // Auto-hide after 3 seconds
+    setTimeout(() => setShowMarketTip(false), 3000); 
   };
 
-  const categories = ['All', 'Recent', 'Vegetables', 'Fruits', 'Dairy', 'Grains'];
+  const categories = ['All', 'Recent', 'Vegetable', 'Fruit', 'Dairy', 'Grains'];
 
-  const products = [
-    { id: 1, name: 'Santol per kilo', price: '₱ 10.00', category: 'Fruits' },
-    { id: 2, name: 'Dako nga Talong', price: '₱ 15.00', category: 'Vegetables' },
-    { id: 3, name: 'Sili 2 kilo', price: '₱ 30.00', category: 'Vegetables' },
-    { id: 4, name: 'Apple Mango', price: '₱ 120.00', category: 'Fruits' },
-    { id: 5, name: 'Pineapple', price: '₱ 50.00', category: 'Fruits' },
-    { id: 6, name: 'Potato', price: '₱ 40.00', category: 'Vegetables' },
-  ];
 
   const filteredProducts =
     activeCategory === 'All'
@@ -103,9 +121,13 @@ const Marketplace = () => {
 
         {/* Products */}
         <ScrollView contentContainerStyle={styles.productsContainer}>
-          {filteredProducts.map((product) => (
-            <View key={product.id} style={styles.productCard}>
-              <View style={styles.placeholderImage} />
+        {console.log('Check image:', filteredProducts.images)}
+          {filteredProducts.map((product, index) => (
+            <View key={index} style={styles.productCard}>
+              <Image
+                source={{ uri: product.images[0] }} 
+                style={styles.placeholderImage}
+              />
               <Text style={styles.productName}>{product.name}</Text>
               <Text style={styles.productPrice}>{product.price}</Text>
             </View>
@@ -138,7 +160,7 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     borderRadius: 15,
-    borderWidth: 1,
+    borderWidth: 1, 
     borderColor: '#333',
     alignItems: 'center',
     justifyContent: 'center',

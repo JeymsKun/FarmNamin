@@ -39,7 +39,7 @@ const ProductScreen = ({ route }) => {
             loadDataBalance(); 
             loadData(); 
         }
-    }, [user]); 
+    }, [user]);
 
     useEffect(() => {
         loadDataBalance(); 

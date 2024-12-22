@@ -1,27 +1,94 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, Image, Alert } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import Dialog from "react-native-dialog"; 
+import { supabase } from '../backend/supabaseClient';
+import { useAuth } from '../hooks/useAuth';
 
 const ProfileMenuScreen = () => {
+  const { user } = useAuth();
   const navigation = useNavigation();
   const [dialogVisible, setDialogVisible] = useState(false); 
-
+  const subscriptionRef = useRef(null);
+  const [profile, setProfile] = useState({});
   
+  useEffect(() => {
+    if (user) {
+      console.log('Current user navigating to Profile Settings Screen:', user);
+      loadData();
+    }
+  }, [user]); 
+
+  const loadData = async () => {
+    if (!user) return;
+  
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('id_user, first_name, last_name, middle_name, suffix')
+        .eq('id_user', user.id_user);
+  
+      if (error) {
+        console.error('Error fetching profile:', error);
+        return;
+      }
+  
+      if (data && data.length > 0) {
+        setProfile(data);
+      } else {
+        console.log('No profile data found.');
+      }
+    } catch (err) {
+      console.error('Unexpected error loading data:', err);
+    }
+  };
+      
+  const listenForChanges = async () => {
+    if (subscriptionRef.current) return;
+  
+    try {
+      const subscription = supabase
+        .channel('database_changes')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, async (payload) => {
+          console.log('Database change detected:', payload);
+          await loadData();
+        })
+        .subscribe((status) => {
+          if (status === 'SUBSCRIBED') {
+            console.log('Successfully subscribed to user changes.');
+          }
+        });
+  
+      subscriptionRef.current = subscription;
+    } catch (err) {
+      console.error('Error subscribing to database changes:', err);
+    }
+  };
+          
+  useEffect(() => {
+    loadData().then(() => listenForChanges());
+  
+    return () => {
+      if (subscriptionRef.current) {
+        supabase.removeChannel(subscriptionRef.current);
+        subscriptionRef.current = null;
+      }
+    };
+  }, []);  
+
   const handleLogout = () => {
     setDialogVisible(true);
   };
 
-  // Handle "Yes" button press
   const handleConfirmLogout = () => {
     console.log("User logged out");
-    setDialogVisible(false); // Close the dialog
+    navigation.navigate('LogIn');
+    setDialogVisible(false);
   };
 
-  // Handle "No" button press
   const handleCancelLogout = () => {
     console.log("User chose not to log out");
-    setDialogVisible(false); // Close the dialog
+    setDialogVisible(false); 
   };
 
   return (
@@ -29,31 +96,33 @@ const ProfileMenuScreen = () => {
       {/* Profile Header */}
       <View style={styles.header}>
         <Image
-          source={require("../assets/images/profilepic.jpg")}
+          source={require("../../assets/images/profilepic.jpg")}
           style={styles.profileImage}
         />
-        <Text style={styles.name}>Jojo Romeyo Terada Jr</Text>
+        <Text style={styles.name}>
+          {`${(profile?.first_name || '').trim()} ${(profile?.last_name || '').trim()} ${(profile?.middle_name || '').trim()} ${profile?.suffix || ''}`}
+        </Text>
       </View>
 
       {/* Menu Options */}
       <View style={styles.menu}>
         <MenuItem
-          icon={require("../assets/images/edet.png")}
+          icon={require("../../assets/images/edet.png")}
           text="Edit Profile"
           onPress={() => navigation.navigate("EditProfile")}
         />
         <MenuItem
-          icon={require("../assets/images/verify.png")}
+          icon={require("../../assets/images/verify.png")}
           text="Verification"
           onPress={() => navigation.navigate("Verification")}
         />
         <MenuItem
-          icon={require("../assets/images/assist.png")}
+          icon={require("../../assets/images/assist.png")}
           text="Agent Assist Program"
           onPress={() => navigation.navigate("AgentAssist")}
         />
         <MenuItem
-          icon={require("../assets/images/logout.png")}
+          icon={require("../../assets/images/logout.png")}
           text="Log out"
           onPress={handleLogout}
         />
@@ -108,8 +177,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#fff",
-    paddingTop: 10,
-    paddingHorizontal: 20,
   },
   header: {
     flexDirection: "row",
