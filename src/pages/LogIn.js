@@ -30,8 +30,7 @@ export default function LogIn({ navigation, route }) {
     setErrorPassword(false);
 
     if (!email || !password) {
-        Alert.alert("Validation Error", "Please fill in both email and password.");
-        return;
+      return;
     }
 
     setLoading(true);
@@ -54,7 +53,7 @@ export default function LogIn({ navigation, route }) {
             }, 3000);
           } else {
             if (!user.is_info_complete) {
-              navigation.navigate('ProfileSetUp', { userId: user.id_user });
+              navigation.navigate('BasicInfo', { userId: user.id_user });
             } else {
               navigation.navigate('HomeTabs', { role });
             }
@@ -69,8 +68,8 @@ export default function LogIn({ navigation, route }) {
 
   const headerImage =
     role === 'farmer'
-      ? require('../../assets/farmer_user.png') 
-      : require('../../assets/consumer_user.png');
+      ? require('../../assets/main/farmer_user.png')
+      : require('../../assets/main/consumer_user.png');
 
   return (
     <KeyboardAwareScrollView
@@ -81,7 +80,7 @@ export default function LogIn({ navigation, route }) {
     >
       <StatusBar hidden={false} />
       <ImageBackground
-        source={require('../../assets/Wheat1.jpg')}
+        source={require('../../assets/main/Wheat1.jpg')}
         style={styles.backgroundImage}
       >
         <LinearGradient
@@ -109,7 +108,7 @@ export default function LogIn({ navigation, route }) {
               <TextInput 
                 value={email} 
                 style={styles.input} 
-                onChangeText={(text) => setEmail(text)}  
+                onChangeText={(text) => setEmail(text.trim())}   
                 placeholder='Email Address'
                 placeholderTextColor='#127810'
                 onFocus={() => setEmailFocused(false)}
@@ -135,7 +134,7 @@ export default function LogIn({ navigation, route }) {
               <TextInput 
                 value={password} 
                 style={styles.input}
-                onChangeText={setPassword} 
+                onChangeText={(text) => setPassword(text.trim())}
                 placeholder='Password'
                 placeholderTextColor='#127810' 
                 secureTextEntry={!showPassword}
@@ -157,7 +156,7 @@ export default function LogIn({ navigation, route }) {
             </View>
 
             <View style={styles.forgotContainer}>
-              <TouchableOpacity onPress={() => navigation.navigate('ResetPasswordScreen', { role })}>
+              <TouchableOpacity onPress={() => navigation.navigate('ResetPassword', { role })}>
                 <Text style={styles.forgotPassword}>Forgot password?</Text>
               </TouchableOpacity>
             </View>
@@ -214,10 +213,12 @@ const styles = StyleSheet.create({
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center', 
   },
   logo: {
-    width: 100,
-    height: 100,
+    width: width * 0.2, 
+    height: width * 0.2, 
+    marginRight: 10, 
   },
   title: {
     fontFamily: 'bold',

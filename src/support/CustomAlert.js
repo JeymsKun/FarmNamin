@@ -67,7 +67,7 @@ const styles = StyleSheet.create({
   },
   alertButtonText: {
     color: '#4ED25B',
-    fontFamily: 'redium', 
+    fontFamily: 'medium', 
     textAlign: 'right',
   },
 });

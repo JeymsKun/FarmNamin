@@ -31,7 +31,7 @@ export default function Tag({ navigation }) {
     
     useEffect(() => {
       const backAction = () => {
-        navigation.navigate('Finance'); 
+        navigation.navigate('TraceAndTrace'); 
         return true; 
       };
   
@@ -116,9 +116,7 @@ export default function Tag({ navigation }) {
           type: type,
         };
 
-        // Logic to handle balance update or creation can be added here
-
-        navigation.navigate('Finance');
+        navigation.navigate('TraceAndTrace');
       }, 3000);
     };
     

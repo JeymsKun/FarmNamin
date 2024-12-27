@@ -1,7 +1,8 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { View, StyleSheet, TouchableOpacity, SafeAreaView, StatusBar, Platform, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, SafeAreaView, StatusBar, Platform, ActivityIndicator, Linking } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 
 const termsHtml = `
 <!DOCTYPE html>
@@ -94,7 +95,7 @@ const termsHtml = `
   <p>We may terminate or suspend access to our service immediately, without prior notice or liability, for any reason whatsoever, including without limitation if you breach the terms. All provisions of the terms which by their nature should survive termination shall survive termination, including, without limitation, ownership provisions, warranty disclaimers, indemnity, and limitations of liability.</p>
   <h2>Contact Us</h2>
   <p>If you have any questions or concerns about this privacy policy, please email us at 
-    <a href="mailto:maserinjamesdavid500@gmail.com">support@farmnamin.com</a>.
+    <a href="mailto:maserin.jamesdavid000@gmail.com">support@transfarmers.com</a>.
   </p>
 </body>
 </html>
@@ -104,11 +105,10 @@ export default function App() {
   const webviewRef = useRef(null);
   const [loading, setLoading] = useState(true); 
   const [showWebView, setShowWebView] = useState(false);
+  const navigation = useNavigation();
 
   const goBack = () => {
-    if (webviewRef.current && webviewRef.current.canGoBack()) {
-      webviewRef.current.goBack();
-    }
+    navigation.goBack();
   };
 
   const reload = () => {
@@ -119,7 +119,7 @@ export default function App() {
 
   const onShouldStartLoadWithRequest = (request) => {
     if (request.url.startsWith('mailto:')) {
-      Linking.openURL('mailto:maserinjamesdavid500@gmail.com'); 
+      Linking.openURL('mailto:maserin.jamesdavid000@gmail.com'); 
       return false; 
     }
     return true; 
@@ -138,7 +138,7 @@ export default function App() {
     <SafeAreaView style={styles.container}>
       <StatusBar hidden={false} />
       <View style={styles.header}>
-        <TouchableOpacity onPress={goBack}>
+      <TouchableOpacity onPress={goBack}>
           <Ionicons name="arrow-back" size={30} color="#4CAF50" />
         </TouchableOpacity>
         <TouchableOpacity onPress={reload}>
@@ -180,8 +180,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 30,
-    height: 80, 
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0, 
+    height: 50, 
     backgroundColor: '#fff',
     zIndex: 1, 
   },

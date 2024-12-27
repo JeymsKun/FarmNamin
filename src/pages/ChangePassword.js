@@ -100,7 +100,7 @@ export default function SignUpScreen({ navigation, route }) {
         if (responseData[0].Message === "You have successfully signed up!") {
           console.log(responseData[0].Message);
           setTimeout(() => {
-            navigation.navigate('ProfileSetUp', { role }); 
+            navigation.navigate('BasicInfo', { role }); 
           }, 2000);
         } else if (responseData[0].Message === "Username, email, or phone number already exists.") {
           if (responseData[0].Username) setUsernameExists(true);
@@ -128,7 +128,7 @@ export default function SignUpScreen({ navigation, route }) {
     >
       <StatusBar hidden={false} />
       <ImageBackground 
-        source={require('../../assets/Wheat1.jpg')} 
+        source={require('../../assets/main/Wheat1.jpg')} 
         style={styles.backgroundImage}
       >
         <LinearGradient
@@ -142,9 +142,9 @@ export default function SignUpScreen({ navigation, route }) {
 
           <View style={styles.header}>
             {role === 'consumer' ? (
-              <Image source={require('../../assets/consumer_user.png')} style={styles.logo} />
+              <Image source={require('../../assets/main/consumer_user.png')} style={styles.logo} />
             ) : (
-              <Image source={require('../../assets/farmer_user.png')} style={styles.logo} />
+              <Image source={require('../../assets/main/farmer_user.png')} style={styles.logo} />
             )}
             <Text style={styles.title}>FarmNamin</Text>
           </View>

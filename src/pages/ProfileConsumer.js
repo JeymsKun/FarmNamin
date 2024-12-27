@@ -1,32 +1,91 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { View, Text, StyleSheet, Image, TouchableOpacity, Modal, ImageBackground, StatusBar, FlatList, Animated } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useQuery } from '@tanstack/react-query';
 import { useDispatch } from 'react-redux';
-import { setProfile, setProducts } from '../store/profileSlice';
-import { fetchProfileData, fetchUserProducts } from '../utils/api';
+import { setProfile } from '../store/profileSlice';
+import { fetchProfileData, fetchUserBookmarkedProducts } from '../utils/api';
 import { useAuth } from '../hooks/useAuth';
+import * as VideoThumbnails from 'expo-video-thumbnails';
 import useRealTimeUpdates from '../hooks/useRealTimeUpdates';
 
-class ProductItem extends React.PureComponent {
+const thumbnailCache = {};
+
+class ProductItem extends React.Component {
+  state = {
+    thumbnail: null,
+  };
+
+  async componentDidMount() {
+    const { item } = this.props;
+    await this.generateThumbnail(item);
+  }
+
+  async generateThumbnail(item) {
+    const videoUri = item.videos?.[0];
+    if (videoUri) {
+      if (thumbnailCache[videoUri]) {
+        this.setState({ thumbnail: thumbnailCache[videoUri] });
+      } else {
+        try {
+          const { uri } = await VideoThumbnails.getThumbnailAsync(videoUri);
+          thumbnailCache[videoUri] = uri; 
+          this.setState({ thumbnail: uri });
+        } catch (error) {
+          console.error("Error generating thumbnail:", error);
+        }
+      }
+    }
+  }
+
+  shouldComponentUpdate(nextProps, nextState) {
+    return (
+      nextProps.item !== this.props.item || 
+      nextProps.navigation !== this.props.navigation || 
+      nextState.thumbnail !== this.state.thumbnail
+    );
+  }
+
   render() {
-    const { item, navigateToProductDetails } = this.props;
+    const { item, navigation, setIsProductDetailActive, formatPrice, productNameFontSize, productPriceFontSize} = this.props;
+    const { thumbnail } = this.state;
 
     return (
       <View style={styles.productCard}>
-        <TouchableOpacity onPress={() => navigateToProductDetails(item.id)}>
-          <Image
-            source={{ uri: item.images[0] }} 
-            style={styles.productImage}
-            resizeMode="cover"
-            onError={(error) => console.error('Image loading error:', error.nativeEvent.error)}
-          />
-        </TouchableOpacity>
-        <View style={styles.productInfo}>
-          <Text style={styles.productName}>{item.name}</Text>
-          <Text style={styles.productPrice}>₱{parseFloat(item.price).toFixed(2)}</Text>
+        <View>
+          {thumbnail ? (
+            <View style={styles.videoContainer}>
+              <Image
+                source={{ uri: thumbnail }} 
+                style={styles.productImage}
+                resizeMode="cover"
+              />
+              <View style={styles.playButton}>
+                <Ionicons name="play-circle-outline" size={30} color="white" />
+              </View>
+            </View>
+          ) : item.images?.[0] ? (
+            <Image
+              source={{ uri: item.images[0] }} 
+              style={styles.productImage}
+              resizeMode="cover"
+            />
+          ) : (
+            <View style={styles.noImageContainer}>
+              <Text style={styles.noImageText}>No Image Available</Text>
+            </View>
+          )}
         </View>
+        <TouchableOpacity style={styles.productInfo} 
+          onPress={() => {
+            setIsProductDetailActive(true); 
+            navigation.navigate('ProductViewer', { product: item });
+          }}>
+          <Text style={[styles.productName, { fontSize: productNameFontSize }]}>{item.name}</Text>
+          <Text style={[styles.productPrice, { fontSize: productPriceFontSize }]}>{formatPrice(item.price)}</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -40,22 +99,40 @@ const ProfileScreen = ({ navigation }) => {
   const dispatch = useDispatch();
   const [profileModalVisible, setProfileModalVisible] = useState(false);
   const [coverModalVisible, setCoverModalVisible] = useState(false);
+  const [isProductDetailActive, setIsProductDetailActive] = useState(false);
   const [showMessage, setShowMessage] = useState(false);
   const [fadeAnim] = useState(new Animated.Value(1));
   const profileScale = useRef(new Animated.Value(1)).current; 
   const flatListRef = useRef(null);
 
+  const getFontSizes = (item) => {
+    const productNameFontSize = item.name.length > 15 ? 11 : 14; 
+    const productPriceFontSize = item.price > 8 ? 11 : 15; 
+    return { productNameFontSize, productPriceFontSize };
+  };
+
+  const formatPrice = (price) => {
+    return new Intl.NumberFormat('en-PH', {
+      style: 'currency',
+      currency: 'PHP',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(price);
+  };
+
   useFocusEffect(
-    React.useCallback(() => {
-      if (flatListRef.current) {
-        flatListRef.current.scrollToOffset({ animated: true, offset: 0 }); 
-      }
-
-      refetchProfile();
-      refetchProducts();
-
-    }, [])
-  );
+      useCallback(() => {
+        if (!isProductDetailActive) {
+          refetchProfile();
+          if (user) {
+            refetchBookmarkedProducts(); 
+          }
+          if (flatListRef.current) {
+            flatListRef.current.scrollToOffset({ animated: true, offset: 0 }); 
+          }
+        }
+      }, [isProductDetailActive, user, refetchProfile, refetchBookmarkedProducts])
+    );
 
   const { data: profile, isLoading: loadingProfile, refetch: refetchProfile } = useQuery({
     queryKey: ['profile', user?.id_user],
@@ -64,18 +141,19 @@ const ProfileScreen = ({ navigation }) => {
     onSuccess: (data) => dispatch(setProfile(data)),
   });
 
-  const { data: products, isLoading: loadingProducts, refetch: refetchProducts } = useQuery({
-    queryKey: ['products', user?.id_user],
-    queryFn: () => fetchUserProducts(user.id_user),
+  const { data: bookmarkedProducts, isLoading: loadingBookmarkedProducts, refetch: refetchBookmarkedProducts } = useQuery({
+    queryKey: ['bookmarkedProducts', user?.id_user],
+    queryFn: () => fetchUserBookmarkedProducts(user.id_user),
     enabled: !!user,
-    onSuccess: (data) => dispatch(setProducts(data)),
   });
+
+  console.log('check favorite products:', bookmarkedProducts);
 
   useRealTimeUpdates(user?.id_user);
 
   const handleRefresh = async () => {
     try {
-      await Promise.all([refetchProfile(), refetchProducts()]);
+      await Promise.all([refetchProfile(), refetchBookmarkedProducts()]);
     } catch (error) {
       console.error("Error during refresh:", error);
     }
@@ -129,7 +207,7 @@ const ProfileScreen = ({ navigation }) => {
   };  
 
   const handleDotsClick = () => {
-    navigation.navigate('ProfileSettings'); 
+    navigation.navigate('ConsumerOrderPage'); 
   };
 
   const renderReviewItem = ({ item }) => (
@@ -206,6 +284,7 @@ const ProfileScreen = ({ navigation }) => {
   const renderUserInfo = () => {
     return (
       <View style={styles.allInfoContainer}>
+
         <View style={styles.userInfoContainer}>
           <Text style={styles.name}>
             {`${(profile?.first_name || '').trim()} ${(profile?.middle_name || '').trim()} ${(profile?.last_name || '').trim()} ${profile?.suffix || ''}`}
@@ -213,22 +292,33 @@ const ProfileScreen = ({ navigation }) => {
           <Text style={styles.mobile}>
             {profile?.phone_number ? `0${profile.phone_number}`.replace(/^00/, '0') : '-----'}
           </Text>
-            <Text style={styles.experience}>{profile?.experience || "-----"}</Text>
         </View>
 
-          <View style={styles.bioContainer}>
-            <Text style={styles.bioText}>{profile?.bio || 'No bio available'}</Text>
-          </View>
       </View>
+    );
+  };
+
+  const renderItem = ({ item }) => {
+    const { productNameFontSize, productPriceFontSize } = getFontSizes(item);
+
+    return (
+      <ProductItem 
+        item={item} 
+        navigation={navigation} 
+        setIsProductDetailActive={setIsProductDetailActive} 
+        formatPrice={formatPrice} 
+        productNameFontSize={productNameFontSize} 
+        productPriceFontSize={productPriceFontSize}
+      />
     );
   };
   
   return (
     <FlatList
       ref={flatListRef}
-      data={products}
-      renderItem={({ item }) => <ProductItem item={item} navigateToProductDetails={navigateToProductDetails} />}
-      keyExtractor={(item) => item.id.toString()}
+      data={bookmarkedProducts}
+      renderItem={renderItem}
+      keyExtractor={(item) => item.product?.id ? item.product.id.toString() : Math.random().toString()}
       contentContainerStyle={styles.container}
       showsVerticalScrollIndicator={false}
       numColumns={2} 
@@ -242,12 +332,11 @@ const ProfileScreen = ({ navigation }) => {
 
           <View style={styles.reviewContainer}>
             <TouchableOpacity onPress={navigateToReviewScreen}>
-              <Text style={styles.reviewTitle}>Go to Consumer's Feedback</Text>
+              <Text style={styles.reviewTitle}>My Feedback</Text>
             </TouchableOpacity>
-            
 
             <View>
-              <Text style={styles.sectionTitle}>My Posted Products</Text>
+              <Text style={styles.sectionTitle}>My Favorite Products</Text>
             </View>
           </View>
 
@@ -283,11 +372,11 @@ const ProfileScreen = ({ navigation }) => {
         </>
       }
       onRefresh={handleRefresh}
-      refreshing={loadingProducts || loadingProfile}
+      refreshing={loadingBookmarkedProducts || loadingProfile}
       ListEmptyComponent={
-        !loadingProducts && (
+        !loadingBookmarkedProducts && (
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>You haven't posted products yet.</Text>
+            <Text style={styles.emptyText}>You haven't marked any product as your favorite.</Text>
           </View>
         )
       }
@@ -338,8 +427,8 @@ const styles = StyleSheet.create({
     right: 100, 
   },
   verifyIcon: {
-    width: 40, 
-    height: 40,
+    width: 30, 
+    height: 30,
   },
   verifiedMessage: {
     marginTop: 3,
@@ -459,21 +548,47 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: 'regular',
   },  
-  fixedTitleContainer: {
-    padding: 10,
-  },
   sectionTitle: {
     marginTop: 10,
     fontSize: 16,
     fontFamily: 'medium',
   },
+  videoContainer: {
+    position: 'relative',
+    width: '100%',
+    height: 150,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f0f0f0', 
+  },
+  playButton: {
+    position: 'absolute',
+    justifyContent: 'center',
+    alignItems: 'center',
+    top: '50%',
+    left: '50%',
+    marginLeft: -15, 
+    marginTop: -15, 
+  },
+  noImageContainer: {
+    width: '100%',
+    height: 150,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#ddd',
+    backgroundColor: '#f0f0f0',
+  },
   productCard: {
     width: '48%',
     margin: '1%',
+    padding: 10,
   },
   productImage: {
     width: '100%',
-    height: 200,
+    height: 150,
     borderWidth: 1,
     borderColor: '#ddd',
   },
@@ -568,7 +683,7 @@ const styles = StyleSheet.create({
     padding: 16, 
   },
   emptyText: {
-    fontSize: 14,
+    fontSize: 12,
     fontFamily: 'medium',
     color: '#666',
   },

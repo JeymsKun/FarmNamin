@@ -27,36 +27,36 @@ const IntroductionCarousel = ({ route }) => {
     {
       topText: ["Easily direct to the", "consumers."],
       images: [
-        require("../../assets/images/farmer.png"),
-        require("../../assets/images/handshake.png"),
-        require("../../assets/images/tao.png"),
+        require("../../assets/introduction/farmer.png"),
+        require("../../assets/introduction/handshake.png"),
+        require("../../assets/introduction/tao.png"),
       ],
       bottomText: ["Direct contact through", "phone number.", "No online chat, etc."],
     },
 
     {
-      image: require("../../assets/images/free.png"),
+      image: require("../../assets/introduction/free.png"),
       description: ["Free advertising for", "farm produce products."],
       subtext: ["No charges and", "additional fees."],
     },
 
     {
       images: [
-        require("../../assets/images/id.png"),
-        require("../../assets/images/info.png"),
+        require("../../assets/introduction/id.png"),
+        require("../../assets/introduction/info.png"),
       ],
       description: "A legitimate account and verified.",
       subtext: ["To ensure the safeguard of", "information."],
     },
 
     {
-      topImage: require("../../assets/images/search.png"),
+      topImage: require("../../assets/introduction/search.png"),
       topText: ["You can sell if you are a farmer.", "You can buy if you are a consumer."],
       images: [
-        require("../../assets/images/editV.png"),
-        require("../../assets/images/chat.png"),
-        require("../../assets/images/quality-control.png"),
-        require("../../assets/images/bookmark.png"),
+        require("../../assets/introduction/editV.png"),
+        require("../../assets/introduction/chat.png"),
+        require("../../assets/introduction/quality-control.png"),
+        require("../../assets/introduction/bookmark.png"),
       ],
       bottomText: ["And many more.", "Take a look and enjoy the rest."],
     },
@@ -155,9 +155,9 @@ const IntroductionCarousel = ({ route }) => {
                   key={index}
                   source={image}
                   style={[
-                    image === require("../../assets/images/farmer.png") && styles.slide1IconFarmer,
-                    image === require("../../assets/images/tao.png") && styles.slide1IconTao,
-                    image === require("../../assets/images/handshake.png") && styles.slide1IconHandshake,
+                    image === require("../../assets/introduction/farmer.png") && styles.slide1IconFarmer,
+                    image === require("../../assets/introduction/tao.png") && styles.slide1IconTao,
+                    image === require("../../assets/introduction/handshake.png") && styles.slide1IconHandshake,
                   ]}
                 />
               ))}

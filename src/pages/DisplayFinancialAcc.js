@@ -124,7 +124,7 @@ export default function FinancialAccount({ navigation }) {
 
     useEffect(() => {
         const backAction = () => {
-            navigation.navigate('Finance');
+            navigation.navigate('FinancialAccount');
             return true;
         };
 
@@ -458,7 +458,7 @@ export default function FinancialAccount({ navigation }) {
                                             <TouchableOpacity 
                                                 style={styles.accountButton} 
                                                     onPress={() =>
-                                                        navigation.navigate('ShowAccount', { selectedAccount: account.main_log_id })
+                                                        navigation.navigate('FinancialAccount', { selectedAccount: account.main_log_id })
                                                     }
                                             >
                                                 <Text style={styles.placeholderText}>

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Image, StyleSheet, Animated } from 'react-native';
+import { View, Image, StyleSheet, Animated, Text } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 
 const SplashScreen = () => {
@@ -22,7 +22,7 @@ const SplashScreen = () => {
     <View style={styles.container}>
       <View style={styles.logoContainer}>
         <Image
-          source={require('../../assets/official_logo.png')} 
+          source={require('../../assets/main/official_logo.png')} 
           style={styles.logo}
           resizeMode="contain"
         />
@@ -39,6 +39,20 @@ const SplashScreen = () => {
           ]}
         >
           FarmNamin
+        </Animated.Text>
+        <Animated.Text
+          style={[
+            styles.by,
+            {
+              transform: [{ scale: scaleAnim }],
+              opacity: scaleAnim, 
+              textShadowColor: 'rgba(0, 0, 0, 0.75)',
+              textShadowOffset: { width: 0, height: 4 },
+              textShadowRadius: 6, 
+            },
+          ]}
+        >
+          Transfarmers
         </Animated.Text>
       </View>
     </View>
@@ -57,13 +71,27 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   logo: {
-    width: 120,
-    height: 120,
+    width: 100,
+    height: 100,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
   },
   title: {
     marginTop: 20,
     fontSize: 32,
-    color: '#12C824',
+    color: 'white',
+    fontFamily: 'bold',
+  },
+  by: {
+    marginTop: -10,
+    fontSize: 11,
+    color: 'white',
     fontFamily: 'bold',
   },
 });

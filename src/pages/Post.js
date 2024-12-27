@@ -790,11 +790,11 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 14,
     textAlign: 'center',
-    fontFamily: 'Poppins-Medium',
+    fontFamily: 'medium',
   },
   modalMessage: {
     fontSize: 14,
-    fontFamily: 'Poppins-Regular',
+    fontFamily: 'regular',
     color: '#666',
     marginVertical: 10,
   },
@@ -812,12 +812,12 @@ const styles = StyleSheet.create({
   modalButtonTextYes: {
     fontSize: 14,
     color: '#4CAF50',
-    fontFamily: 'Poppins-Medium',
+    fontFamily: 'medium',
   },
   modalButtonTextNo: {
     fontSize: 14,
     color: '#F44336',
-    fontFamily: 'Poppins-Medium',
+    fontFamily: 'medium',
   },
  
 });

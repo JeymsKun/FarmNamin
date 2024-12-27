@@ -159,7 +159,7 @@ const ProfileSetUp = ({ navigation, route }) => {
 
 
       setTimeout(() => {
-        navigation.navigate('IntroScreen', { role: userRole, name: FirstName });
+        navigation.navigate('Introduction', { role: userRole, name: FirstName });
       }, 2000);
     } catch (error) {
       console.log(`Error: ${error.message}`);

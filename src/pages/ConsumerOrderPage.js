@@ -10,7 +10,7 @@ import {
   Modal,
   ScrollView,
 } from 'react-native';
-import { CheckBox } from 'react-native-elements';
+// import { CheckBox } from 'react-native-elements';
 import { Ionicons } from '@expo/vector-icons';
 
 import headerImage from '../../assets/images/order-header.webp';
@@ -107,7 +107,7 @@ const ConsumerOrderPage = ({ navigation }) => {
               </Text>
 
               <View style={styles.checkboxContainer}>
-                <CheckBox
+                {/* <CheckBox
                   checked={isChecked}
                   onPress={() => setIsChecked(!isChecked)}
                   containerStyle={[
@@ -120,7 +120,7 @@ const ConsumerOrderPage = ({ navigation }) => {
                     isChecked && styles.checkedText,
                   ]}
                   checkedColor="#4CAF50"
-                />
+                /> */}
               </View>
 
               <View style={styles.modalButtonsContainer}>

@@ -13,14 +13,14 @@ export default function RoleScreen({ navigation }) {
             <View style={styles.rowWrapper}>
                 <View style={styles.farmerContainer}>
                     <TouchableOpacity style={styles.farmerButton} onPress={() => handleRoleSelection('farmer')}>
-                        <Image source={require('../../assets/farmer_user.png')} style={styles.image} />
+                        <Image source={require('../../assets/main/farmer_user.png')} style={styles.image} />
                         <Text style={styles.text}>Yes, I am.</Text>
                     </TouchableOpacity>
                 </View>
 
                 <View style={styles.consumerContainer}>
                     <TouchableOpacity style={styles.consumerButton} onPress={() => handleRoleSelection('consumer')}>
-                        <Image source={require('../../assets/consumer_user.png')} style={styles.image} />
+                        <Image source={require('../../assets/main/consumer_user.png')} style={styles.image} />
                         <Text style={styles.text}>Of course.</Text>
                     </TouchableOpacity>
                 </View>

@@ -43,7 +43,7 @@ export default function FinancialLog({ navigation, route }) {
 
     useEffect(() => {
         const backAction = () => {
-            navigation.navigate('Account'); 
+            navigation.navigate('TraceAndTrace'); 
             return true; 
         };
     
@@ -120,7 +120,7 @@ export default function FinancialLog({ navigation, route }) {
             setSchedules((prevBalance) => [...prevBalance, updatedBalance]);
             }
         
-            navigation.navigate('Finance');
+            navigation.navigate('TraceAndTrace');
         }, 3000);
     };
 
@@ -258,7 +258,7 @@ export default function FinancialLog({ navigation, route }) {
             prevLogs.map((log) => (log.id === entry.id ? updatedEntry : log))
         );
 
-        navigation.navigate('Account', { account: updatedEntry });
+        navigation.navigate('FinancialAccount', { account: updatedEntry });
     };
 
     const handleDone = async () => {
@@ -434,7 +434,7 @@ export default function FinancialLog({ navigation, route }) {
                     </TouchableOpacity>
                 </View>
 
-                <TouchableOpacity style={styles.viewButton} onPress={() => navigation.navigate('Account')}>
+                <TouchableOpacity style={styles.viewButton} onPress={() => navigation.navigate('FinancialAccount')}>
                     <View style={styles.iconTextRow}>
                         <AntDesign name="filetext1" size={20} color="black" />
                         <Text style={styles.buttonText}>View Logs</Text>

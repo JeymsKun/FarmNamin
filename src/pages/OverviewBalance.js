@@ -56,7 +56,7 @@ export default function OverviewBalance({ navigation, route }) {
 
     useEffect(() => {
       const backAction = () => {
-          navigation.navigate('Finance'); 
+          navigation.navigate('TraceAndTrace'); 
           return true; 
       };
   
@@ -131,7 +131,7 @@ export default function OverviewBalance({ navigation, route }) {
           setSchedules((prevBalance) => [...prevBalance, updatedBalance]);
         }
     
-        navigation.navigate('Finance');
+        navigation.navigate('TraceAndTrace');
       }, 3000);
     };
     

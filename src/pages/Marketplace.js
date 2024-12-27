@@ -1,92 +1,226 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useState, useRef, useCallback } from 'react';
+import { View, Text, TextInput, StyleSheet, ScrollView, TouchableOpacity, FlatList, Dimensions, StatusBar, Image } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
+import { useNavigation } from "@react-navigation/native";
+import { useAuth } from '../hooks/useAuth';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import AntDesign from 'react-native-vector-icons/AntDesign';
+import { useDispatch } from 'react-redux';
+import { setProducts } from '../store/allProductSlice'; 
+import { fetchAllProducts, fetchUserFavorites } from '../utils/api';
+import { useQuery } from '@tanstack/react-query';
+import * as VideoThumbnails from 'expo-video-thumbnails';
+import useRealTimeUpdates from '../hooks/useRealTimeUpdates';
 
-const Marketplace = () => {
-  const [activeCategory, setActiveCategory] = useState('All');
-  const [showMarketTip, setShowMarketTip] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
+const thumbnailCache = {};
 
-  const handleMarketTip = () => {
-    setShowMarketTip(true);
-    setTimeout(() => setShowMarketTip(false), 3000); // Auto-hide after 3 seconds
+class ProductItem extends React.Component {
+  state = {
+    thumbnail: null,
   };
 
-  const categories = ['All', 'Recent', 'Vegetables', 'Fruits', 'Dairy', 'Grains'];
+  async componentDidMount() {
+    const { item } = this.props;
+    await this.generateThumbnail(item);
+  }
 
-  const products = [
-    { id: 1, name: 'Santol per kilo', price: '₱ 10.00', category: 'Fruits' },
-    { id: 2, name: 'Dako nga Talong', price: '₱ 15.00', category: 'Vegetables' },
-    { id: 3, name: 'Sili 2 kilo', price: '₱ 30.00', category: 'Vegetables' },
-    { id: 4, name: 'Apple Mango', price: '₱ 120.00', category: 'Fruits' },
-    { id: 5, name: 'Pineapple', price: '₱ 50.00', category: 'Fruits' },
-    { id: 6, name: 'Potato', price: '₱ 40.00', category: 'Vegetables' },
-  ];
+  async generateThumbnail(item) {
+    const videoUri = item.videos?.[0];
+    if (videoUri) {
+      if (thumbnailCache[videoUri]) {
+        this.setState({ thumbnail: thumbnailCache[videoUri] });
+      } else {
+        try {
+          const { uri } = await VideoThumbnails.getThumbnailAsync(videoUri);
+          thumbnailCache[videoUri] = uri; 
+          this.setState({ thumbnail: uri });
+        } catch (error) {
+          console.error("Error generating thumbnail:", error);
+        }
+      }
+    }
+  }
 
-  const filteredProducts =
-    activeCategory === 'All'
-      ? products.filter((product) =>
-          product.name.toLowerCase().includes(searchQuery.toLowerCase())
-        )
-      : products.filter(
-          (product) =>
-            product.category === activeCategory &&
-            product.name.toLowerCase().includes(searchQuery.toLowerCase())
-        );
+  shouldComponentUpdate(nextProps, nextState) {
+    return (
+      nextProps.item !== this.props.item || 
+      nextProps.navigation !== this.props.navigation || 
+      nextState.thumbnail !== this.state.thumbnail
+    );
+  }
 
-  return (
-    <View style={styles.container}>
-      {/* MarketTip Overlay */}
-      {showMarketTip && (
-        <View style={[styles.marketTipOverlay, styles.overlayPosition]}>
-          <Text style={styles.marketTipText}>
-            Here, you can browse products like{' '}
-            <Text style={styles.boldHighlight}>Fruits</Text>,{' '}
-            <Text style={styles.boldHighlight}>Vegetables</Text>, and more. Use the{' '}
-            <Text style={styles.boldHighlight}>Search Bar</Text> to find items or filter by category for quick navigation.
-          </Text>
+  render() {
+    const { item, navigation, setIsProductDetailActive, formatPrice, productNameFontSize, productPriceFontSize, isFavorite } = this.props;
+    const { thumbnail } = this.state;
+
+    return (
+      <View style={styles.productCard}>
+        <View>
+          {thumbnail ? (
+            <View style={styles.videoContainer}>
+              <Image
+                source={{ uri: thumbnail }} 
+                style={styles.productImage}
+                resizeMode="cover"
+              />
+              <View style={styles.playButton}>
+                <Ionicons name="play-circle-outline" size={30} color="white" />
+              </View>
+            </View>
+          ) : item.images?.[0] ? (
+            <Image
+              source={{ uri: item.images[0] }} 
+              style={styles.productImage}
+              resizeMode="cover"
+            />
+          ) : (
+            <View style={styles.noImageContainer}>
+              <Text style={styles.noImageText}>No Image Available</Text>
+            </View>
+          )}
         </View>
-      )}
+        <TouchableOpacity style={styles.productInfo} 
+          onPress={() => {
+            setIsProductDetailActive(true); 
+            navigation.navigate('ProductViewer', { product: item, isFavorite });
+          }}>
+          <Text style={[styles.productName, { fontSize: productNameFontSize }]}>{item.name}</Text>
+          <Text style={[styles.productPrice, { fontSize: productPriceFontSize }]}>{formatPrice(item.price)}</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+}
 
-      {/* Main Content */}
+const { width } = Dimensions.get('window');
+
+const Marketplace = () => {
+  const { user } = useAuth();
+  const navigation = useNavigation();
+  const dispatch = useDispatch();
+  const [activeCategory, setActiveCategory] = useState('All');
+  const [isProductDetailActive, setIsProductDetailActive] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const flatListRef = useRef(null);
+  const scrollViewRef = useRef(null);
+
+  useRealTimeUpdates(user?.id_user);
+
+  const getFontSizes = (item) => {
+    const productNameFontSize = item.name.length > 15 ? 11 : 14; 
+    const productPriceFontSize = item.price > 8 ? 11 : 15; 
+    return { productNameFontSize, productPriceFontSize };
+  };
+
+  const { data: fetchProducts = [], isLoading: loadingProducts, refetch: refetchAllProducts } = useQuery({
+    queryKey: ['products'], 
+    queryFn: fetchAllProducts, 
+    staleTime: 1000 * 60 * 5, 
+    onSuccess: (data) => {
+      console.log('Fetched products:', data); 
+      dispatch(setProducts(data));
+    },
+  });
+
+  const { data: favoriteProducts = [], refetch: refetchFavorites } = useQuery({
+    queryKey: ['favorites', user?.id_user],
+    queryFn: () => fetchUserFavorites(user.id_user),
+    enabled: !!user,
+    staleTime: 1000 * 60 * 5,
+  });
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!isProductDetailActive) {
+        refetchAllProducts();
+        if (user) {
+          refetchFavorites(); 
+        }
+        if (flatListRef.current) {
+          flatListRef.current.scrollToOffset({ animated: true, offset: 0 }); 
+        }
+      }
+    }, [isProductDetailActive, user, refetchAllProducts, refetchFavorites])
+  );
+  
+  const filteredProducts = fetchProducts.filter(product => {
+    const matchesCategory = activeCategory === 'All' || 
+      (activeCategory === 'Recent' && new Date(product.created_at).toDateString() === new Date().toDateString()) || 
+      product.category === activeCategory; 
+
+    const matchesSearch = product.name.includes(searchQuery);
+    return matchesCategory && matchesSearch;
+  });
+
+  const formatPrice = (price) => {
+    return new Intl.NumberFormat('en-PH', {
+      style: 'currency',
+      currency: 'PHP',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(price);
+  };
+
+  const renderHeader = () => {
+    return (
+      <View style={styles.headerContainer}>
+        <Text style={styles.headerText}>Welcome to Marketplace</Text>
+        <TouchableOpacity>
+          <AntDesign name="questioncircleo" size={15} color="black" />
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  const renderSearch = () => {
+    const uniqueCategories = Array.from(new Set(fetchProducts.map(product => product.category)));
+    const categoriesToDisplay = ['All', 'Recent', ...uniqueCategories];
+
+    return (
       <View>
-        {/* Header */}
-        <View style={styles.headerContainer}>
-          <Text style={styles.headerText}>Welcome to Marketplace</Text>
-          <TouchableOpacity onPress={handleMarketTip} style={styles.circleButton}>
-            <Text style={styles.circleButtonText}>?</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Search Bar */}
         <View style={styles.searchContainer}>
           <TextInput
             style={styles.searchInput}
             placeholder="Search product"
             placeholderTextColor="#fff"
             value={searchQuery}
-            onChangeText={(text) => setSearchQuery(text)}
+            onChangeText={(text) => {
+              setSearchQuery(text);
+              const matchedCategory = categoriesToDisplay.find(category => category.toLowerCase() === text.toLowerCase());
+              if (matchedCategory) {
+                setActiveCategory(matchedCategory);
+                const index = categoriesToDisplay.indexOf(matchedCategory);
+                const categoryOffset = index * 100; 
+                scrollViewRef.current.scrollTo({ x: categoryOffset, animated: true });
+              }
+            }}
           />
+          {searchQuery.length > 6 && (
+            <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.closeIconContainer}>
+              <Ionicons name="close-circle" size={30} color="#fff" />
+            </TouchableOpacity>
+          )}
           <TouchableOpacity style={styles.searchIconContainer}>
-            <Ionicons name="search-outline" size={20} color="#fff" />
+            <Ionicons name="search-outline" size={25} color="#fff" />
           </TouchableOpacity>
         </View>
-
-        {/* Categories */}
         <View style={styles.fixedCategoryContainer}>
           <ScrollView
+            ref={scrollViewRef}
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.categoryFilterContainer}
           >
-            {categories.map((category) => (
+            {categoriesToDisplay.map((category) => (
               <TouchableOpacity
                 key={category}
                 style={[
                   styles.categoryFilter,
                   activeCategory === category && styles.activeCategoryFilter,
                 ]}
-                onPress={() => setActiveCategory(category)}
+                onPress={() => {
+                  setActiveCategory(category);
+                }}
               >
                 <Text
                   style={[
@@ -100,59 +234,89 @@ const Marketplace = () => {
             ))}
           </ScrollView>
         </View>
-
-        {/* Products */}
-        <ScrollView contentContainerStyle={styles.productsContainer}>
-          {filteredProducts.map((product) => (
-            <View key={product.id} style={styles.productCard}>
-              <View style={styles.placeholderImage} />
-              <Text style={styles.productName}>{product.name}</Text>
-              <Text style={styles.productPrice}>{product.price}</Text>
-            </View>
-          ))}
-        </ScrollView>
+        {searchQuery && loadingProducts && !categoriesToDisplay.some(category => category.toLowerCase().includes(searchQuery.toLowerCase())) && (
+          <Text style={styles.noCategoryText}>No category found.</Text>
+        )}
       </View>
-    </View>
+    );
+  };
+
+
+
+  const handleRefresh = () => {
+    refetchAllProducts();
+  };
+
+  const renderItem = ({ item }) => {
+    const { productNameFontSize, productPriceFontSize } = getFontSizes(item);
+    const isFavorite = favoriteProducts.some(fav => fav.product.id === item.id && fav.is_bookmarked);
+
+    return (
+      <ProductItem 
+        item={item} 
+        navigation={navigation} 
+        setIsProductDetailActive={setIsProductDetailActive} 
+        formatPrice={formatPrice} 
+        productNameFontSize={productNameFontSize} 
+        productPriceFontSize={productPriceFontSize} 
+        isFavorite={isFavorite} 
+      />
+    );
+  };
+
+  return (
+    <FlatList
+      ref={flatListRef}
+      data={filteredProducts}
+      renderItem={renderItem}
+      keyExtractor={(item) => item.id.toString()}
+      contentContainerStyle={styles.container}
+      showsVerticalScrollIndicator={false}
+      numColumns={2} 
+      key={`columns_${2}`}
+      ListHeaderComponent={
+        <View>
+          <StatusBar hidden={false} />
+          {renderHeader()}
+          {renderSearch()}
+        </View>
+      }
+      onRefresh={handleRefresh}
+      refreshing={loadingProducts}
+      ListEmptyComponent={
+        loadingProducts ? (
+          <Text style={styles.noFoundText}>Loading products...</Text>
+        ) : (
+          <Text style={styles.noFoundText}>No products found.</Text>
+        )
+      }
+    />
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    flexGrow: 1,
     backgroundColor: '#ffffff',
-    paddingHorizontal: 15,
-    paddingVertical: 50,
+    padding: 10,
   },
   headerContainer: {
     flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 15,
+    alignItems: 'center', 
+    padding: 10,
+    marginBottom: 10, 
   },
   headerText: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: width * 0.04, 
+    fontFamily: 'medium',
     color: '#333',
-    left: 5,
-  },
-  circleButton: {
-    width: 20,
-    height: 20,
-    borderRadius: 15,
-    borderWidth: 1,
-    borderColor: '#333',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginLeft: 9,
-  },
-  circleButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#333',
+    marginRight: 5, 
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 15,
+    justifyContent: 'center',
+    marginBottom: 10,
     backgroundColor: '#4CAF50',
     borderRadius: 25,
     paddingHorizontal: 15,
@@ -160,96 +324,117 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
+    padding: 10,
     fontSize: 14,
+    fontFamily: 'regular',
     color: '#fff',
   },
   searchIconContainer: {
     justifyContent: 'center',
     alignItems: 'center',
   },
+  closeIconContainer: {
+    marginRight: 10,
+  },
   fixedCategoryContainer: {
-    paddingBottom: 10,
     marginBottom: 8,
   },
   categoryFilterContainer: {
     flexDirection: 'row',
-    marginBottom: 2,
     alignItems: 'center',
   },
   categoryFilter: {
     backgroundColor: '#e0e0e0',
     borderRadius: 20,
     paddingHorizontal: 15,
-    paddingVertical: 8,
+    paddingVertical: 5,
     marginRight: 15,
   },
   activeCategoryFilter: {
     backgroundColor: '#4CAF50',
   },
   categoryFilterText: {
-    fontSize: 14,
+    fontSize: 13,
+    fontFamily: 'regular',
     color: '#666',
   },
   activeCategoryFilterText: {
     color: '#fff',
+    fontFamily: 'regular',
   },
-  productsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
+  videoContainer: {
+    position: 'relative',
+    width: '100%',
+    height: 150,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f0f0f0', 
+  },
+  playButton: {
+    position: 'absolute',
+    justifyContent: 'center',
+    alignItems: 'center',
+    top: '50%',
+    left: '50%',
+    marginLeft: -15, 
+    marginTop: -15, 
+  },
+  noImageContainer: {
+    width: '100%',
+    height: 150,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#ddd',
+    backgroundColor: '#f0f0f0',
+  },
+  noImageText: {
+    color: '#888', 
+    fontSize: 14,
+    fontFamily: 'regular',
   },
   productCard: {
-    width: '47%',
-    backgroundColor: '#f9f9f9',
-    borderRadius: 10,
-    marginBottom: 15,
-    padding: 10,
-    alignItems: 'center',
+    width: '48%',
+    margin: '1%',
   },
-  placeholderImage: {
+  productImage: {
     width: '100%',
-    aspectRatio: 1,
-    backgroundColor: '#ddd',
-    borderRadius: 10,
-    marginBottom: 10,
+    height: 150,
+    borderWidth: 1,
+    borderColor: '#ddd',
+  },
+  productInfo: {
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   productName: {
     fontSize: 14,
+    fontFamily: 'medium',
     textAlign: 'center',
-    marginBottom: 5,
-    color: '#333',
   },
   productPrice: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#4CAF50',
+    fontSize: 15,
+    fontFamily: 'regular',
+    textAlign: 'center',
   },
-  marketTipOverlay: {
-    position: 'absolute',
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    borderRadius: 10,
-    padding: 15,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-    elevation: 6,
-    zIndex: 9999,
+  noFoundText: {
+    margin: 50,
+    fontSize: width * 0.040, 
+    color: 'gray', 
+    textAlign: 'center',
+    fontFamily: 'regular',
   },
-  overlayPosition: {
-    top: 75,
-    left: 10,
-    right: 40,
-  },
-  marketTipText: {
-    color: '#333',
-    fontSize: 14,
-    lineHeight: 20,
-    textAlign: 'justify',
-  },
-  boldHighlight: {
-    color: '#2e7d32',
-    fontWeight: 'bold',
+  noCategoryText: {
+    margin: 50,
+    fontSize: width * 0.040, 
+    color: 'gray', 
+    textAlign: 'center',
+    fontFamily: 'regular',
   },
 });
 

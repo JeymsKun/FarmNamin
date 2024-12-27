@@ -428,7 +428,7 @@ const ProductScreen = ({ route }) => {
     };
 
     const handleArrowClick = (accountName) => {
-        navigation.navigate('ShowAccount', { selectedAccount: accountName });
+        navigation.navigate('FinancialAccount', { selectedAccount: accountName });
     };
 
     const loadSelectedAccounts = async () => {

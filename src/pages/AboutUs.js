@@ -2,6 +2,7 @@ import React, { useRef, useState, useEffect } from 'react';
 import { View, StyleSheet, TouchableOpacity, SafeAreaView, StatusBar, ActivityIndicator, Linking } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 
 const aboutUsHtml = `
 <!DOCTYPE html>
@@ -190,7 +191,7 @@ const aboutUsHtml = `
     <p>Together, we strive to support local agriculture and provide fresh, high-quality produce to our community.</p>
 
     <h2>Join Us</h2>
-    <p>Interested in our project or have feedback? Reach out to us at <a href="mailto:support@farmnamin.com">support@farmnamin.com</a>.</p>
+    <p>Interested in our project or have feedback? Reach out to us at <a href="mailto:maserin.jamesdavid000.com">support@transfarmers.com</a>.</p>
 </body>
 </html>
 `;
@@ -199,11 +200,10 @@ export default function AboutUs() {
   const webviewRef = useRef(null);
   const [loading, setLoading] = useState(true);
   const [showWebView, setShowWebView] = useState(false);
+  const navigation = useNavigation();
 
   const goBack = () => {
-    if (webviewRef.current && webviewRef.current.canGoBack()) {
-      webviewRef.current.goBack();
-    }
+    navigation.goBack();
   };
 
   const reload = () => {
@@ -213,12 +213,12 @@ export default function AboutUs() {
   };
 
   const onShouldStartLoadWithRequest = (request) => {
-    if (request.url.startsWith('mailto:')) {
-      Linking.openURL(request.url);
-      return false;
-    }
-    return true;
-  };
+        if (request.url.startsWith('mailto:')) {
+            Linking.openURL('mailto:maserin.jamesdavid000@gmail.com'); 
+            return false; 
+        }
+            return true; 
+    };
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -262,12 +262,15 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#ffffff',
-    paddingTop:20,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    padding: 16,
+    alignItems: 'center',
+    paddingHorizontal: 30,
+    height: 50, 
+    backgroundColor: '#fff',
+    zIndex: 1, 
   },
   loaderContainer: {
     flex: 1,

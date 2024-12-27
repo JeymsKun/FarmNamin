@@ -6,7 +6,7 @@ import { useAuth } from '../hooks/useAuth';
 
 const { width, height } = Dimensions.get('window');
 
-const TipScreen = ({ route }) => {
+const AgricultureTipsScreen = ({ route }) => {
     const navigation = useNavigation();
     const { user } = useAuth();
     const [showInfoMessage, setShowInfoMessage] = useState(false);
@@ -196,4 +196,4 @@ const styles = StyleSheet.create({
 });
 
 
-export default TipScreen;
+export default AgricultureTipsScreen;

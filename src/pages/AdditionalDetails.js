@@ -144,7 +144,7 @@ const AdditionalDetailsScreen = ({ route, navigation }) => {
           <TextInput
             style={styles.searchBar}
             placeholder="Search if you can’t find what you need."
-            placeholderTextColor="#58675A"
+            placeholderTextColor="white"
             value={searchQuery}
             onChangeText={(text) => setSearchQuery(text)}
           />

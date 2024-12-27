@@ -21,6 +21,7 @@ export default function Product({ navigation, route }) {
   const userId = user?.id_user;
   const [name, setName] = useState('');
   const [productPrice, setProductPrice] = useState('');
+  const [productUnitPrice, setProductUnitPrice] = useState('');
   const [productLocation, setProductLocation] = useState('');
   const [productDescription, setProductDescription] = useState('');
   const [category, setCategory] = useState('');
@@ -32,6 +33,7 @@ export default function Product({ navigation, route }) {
   const [modalVisible, setModalVisible] = useState(false);
   const [focusedName, setFocusedName] = useState(false);
   const [focusedProductPrice, setFocusedPrice] = useState(false);
+  const [focusedProductUnitPrice, setFocusedProductUnitPrice] = useState(false);
   const [focusedLocation, setFocusedLocation] = useState(false);
   const [focusedDescription, setFocusedDescription] = useState(false);
   const [focusedCategory, setFocusedCategory] = useState(false);
@@ -247,7 +249,15 @@ export default function Product({ navigation, route }) {
   };
 
   const handleDone = () => {
-    if (imagesVideo.length === 0 || name.trim() === '' || productPrice.trim() === '' || productLocation.trim() === '' || productDescription.trim() === '') {
+    if (imagesVideo.length === 0 
+      || name.trim() === '' 
+      || productPrice.trim() === '' 
+      || productLocation.trim() === '' 
+      || productDescription.trim() === '' 
+      || productUnitPrice.trim() === ''
+      || available.trim() === ''
+      || category.trim() === '') 
+    {
       setIsAlertVisible(true);
     } else {
       setIsConfirmationModalVisible(true); 
@@ -257,30 +267,40 @@ export default function Product({ navigation, route }) {
 
   const renderAlertMessage = () => {
     if (imagesVideo.length === 0) {
-      return 'Your Photo/Video is empty';
+      return 'Photo/Video is empty';
     } else if (productDescription.trim() === '') {
-      return 'Your Name, Description, or Title is empty';
+      return 'Description is empty';
     } else if (productLocation.trim() === '') {
-      return 'Your Location is empty';
+      return 'Location is empty';
+    } else if (productPrice.trim() === '') {
+      return 'Price is empty';
+    } else if (productUnitPrice.trim() === '') {
+      return 'Unit Price';
+    } else if (name.trim() === '') {
+      return 'Name is empty';
+    } else if (available.trim() === '') {
+      return 'Available stock is empty';
+    } else if (category.trim() === '') {
+      return 'Category is empty';
+    } else {
+      return 'Please fill up all the fields';
     }
   };
 
   const handleUploadFileToSupabase = async (fileUri, type) => {
     try {
-      // Fetch the file from the URI
+
       const response = await fetch(fileUri);
       const blob = await response.blob();
       const reader = new FileReader();
-  
-      // Read the blob as a Data URL
+
       reader.readAsDataURL(blob);
       
       reader.onloadend = async () => {
         const base64data = reader.result; 
         const base64FileData = base64data.split(',')[1]; 
         const arrayBuffer = decode(base64FileData);
-  
-        // Upload the file to Supabase storage
+
         const { error } = await supabase
           .storage
           .from('product') 
@@ -292,8 +312,7 @@ export default function Product({ navigation, route }) {
           console.error('Error uploading file:', error);
           return null; 
         }
-  
-        // Optionally log success without returning the URL
+
         console.log('File uploaded successfully');
       };
     } catch (error) {
@@ -312,29 +331,54 @@ export default function Product({ navigation, route }) {
     setIsLoading(true);
   
     try {
-      // Upload images
+
       await Promise.all(
         imagesVideo.filter(item => item.type === 'image').map(image => handleUploadFileToSupabase(image.uri, 'image'))
       );
-  
-      // Upload videos
+
       await Promise.all(
         imagesVideo.filter(item => item.type === 'video').map(video => handleUploadFileToSupabase(video.uri, 'video'))
       );
-  
-      // Insert product data into Supabase
+
+      const additionalDetailsData = {
+        freshness_duration: detailValues['Freshness Duration'] || '',
+        maximum_duration: detailValues['Maximum Duration'] || '',
+        date_time_harvest: detailValues['Date & Time Harvest'] || '',
+        harvest_method: detailValues['Harvest Method'] || '',
+        soil_type: detailValues['Soil Type'] || '',
+        water_source: detailValues['Water Source'] || '',
+        irrigation_method: detailValues['Irrigation Method'] || '',
+        crop_rotation_practice: detailValues['Crop Rotation Practice'] || '',
+        use_of_fertilizers: detailValues['Use of Fertilizers'] || '',
+        pest_control_measures: detailValues['Pest Control Measures'] || '',
+        presence_of_gmos: detailValues['Presence of GMOs'] || '',
+        organic_certification: detailValues['Organic Certification'] || '',
+        storage_conditions: detailValues['Storage Conditions'] || '',
+        ideal_storage_temperature: detailValues['Ideal Storage Temperature'] || '',
+        packaging_type: detailValues['Packaging Type'] || '',
+        community_support_projects: detailValues['Community Support Projects'] || '',
+        cooking_recommendations: detailValues['Cooking Recommendations'] || '',
+        best_consumption_period: detailValues['Best Consumption Period'] || '',
+        special_handling_instructions: detailValues['Special Handling Instructions'] || '',
+        farm_history: detailValues['Farm History'] || '',
+        use_of_indigenous_knowledge: detailValues['Use of Indigenous Knowledge'] || '',
+        use_of_technology_in_farming: detailValues['Use of Technology in Farming'] || '',
+      };
+
       const { data, error } = await supabase
         .from('product')
         .insert({
           id_user: userId,
-          images: imagesVideo.filter(item => item.type === 'image').map(image => image.uri), // Assuming you want to keep the original URIs
-          videos: imagesVideo.filter(item => item.type === 'video').map(video => video.uri), // Assuming you want to keep the original URIs
+          images: imagesVideo.filter(item => item.type === 'image').map(image => image.uri), 
+          videos: imagesVideo.filter(item => item.type === 'video').map(video => video.uri), 
           name: name,
           price: parseFloat(productPrice), 
+          unit_price: productUnitPrice,
           location: productLocation,
           description: productDescription,
           available: available,
           category: category,
+          ...additionalDetailsData,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         });
@@ -522,10 +566,10 @@ export default function Product({ navigation, route }) {
               <Text style={styles.modalTitle}>Are you sure you want to delete the selected images?</Text>
               <View style={styles.modalButtons}>
                 <TouchableOpacity style={styles.modalButton}>
-                  <Text style={styles.modalButtonText}>Yes</Text>
+                  <Text style={styles.modalButtonTextYes}>Yes</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.modalButton} onPress={() => setModalVisible(false)}>
-                  <Text style={styles.modalButtonText}>No</Text>
+                  <Text style={styles.modalButtonTextNo}>No</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -552,6 +596,16 @@ export default function Product({ navigation, route }) {
             keyboardType="numeric"
             onChangeText={setProductPrice}
             onBlur={() => setFocusedPrice(true)}
+          />
+        </View>
+        <Text style={styles.inputTitles}>Unit Price</Text>
+        <View style={[styles.inputWrapper, focusedProductUnitPrice && productPrice.length === 0 && styles.errorBorder]}>
+          <TextInput
+            style={styles.input}
+            placeholder="Add Unit Price (e.g., per kg, per liter, etc.)"
+            value={productUnitPrice}
+            onChangeText={setProductUnitPrice}
+            onBlur={() => setFocusedProductUnitPrice(true)}
           />
         </View>
         <Text style={styles.inputTitles}>Location</Text>

@@ -13,7 +13,7 @@ export default function ShowFinancialAccount({ navigation, route }) {
 
     useEffect(() => {
         const backAction = () => {
-            navigation.navigate('Account');
+            navigation.navigate('TraceAndTrace');
             return true;
         };
 

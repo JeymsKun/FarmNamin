@@ -2,18 +2,20 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { Easing } from 'react-native';
 import HomeTabs from '../hometabs/HomeTabs';
-import ProfileSetUp from '../pages/ProfileSetUp';
-import LogIn from '../pages/LogIn';
-import ResetPasswordScreen from '../pages/ResetPasswordScreen';
-import ChangePassword from '../pages/ChangePassword';
-import SignUpScreen from '../pages/SignUpScreen';
-import IntroScreen from '../pages/IntroScreen';
-import WelcomeScreen from '../pages/WelcomeNewUser';
-import SplashScreen from '../pages/SplashScreen';
-import RoleSelection from '../pages/RoleSelection';
+import BasicInfoScreen from '../pages/BasicInfo';
+import LogInScreen from '../pages/LogIn';
+import ResetPasswordScreen from '../pages/ResetPassword';
+import ChangePasswordScreen from '../pages/ChangePassword';
+import SignUpScreen from '../pages/SignUp';
+import IntroductionScreen from '../pages/Introduction';
+import WelcomeScreen from '../pages/Welcome';
+import SplashScreen from '../pages/Splash';
+import RoleSelectionScreen from '../pages/RoleSelection';
 import ImageViewer from '../support/ImageViewer';
 import PrivacyPolicyScreen from '../pages/PrivacyPolicy';
 import TermsScreen from '../pages/Terms';
+import AgentAssistScreen from '../pages/AgentAssist';
+import AboutUsScreen from '../pages/AboutUs';
 import WebViewScreen from '../support/WebViewScreen';
 
 const Stack = createStackNavigator();
@@ -23,7 +25,7 @@ const AppNav = () => {
   return (
     <NavigationContainer>
       <Stack.Navigator
-        initialRouteName="SplashScreen"
+        initialRouteName="Splash"
         screenOptions={{
           headerShown: false,
           transitionSpec: {
@@ -59,19 +61,21 @@ const AppNav = () => {
           },
         }}
       >
-        <Stack.Screen name="SplashScreen" component={SplashScreen} />
-        <Stack.Screen name="RoleSelection" component={RoleSelection} />
-        <Stack.Screen name="LogIn" component={LogIn} />
+        <Stack.Screen name="Splash" component={SplashScreen} />
+        <Stack.Screen name="RoleSelection" component={RoleSelectionScreen} />
+        <Stack.Screen name="LogIn" component={LogInScreen} />
         <Stack.Screen name="SignUp" component={SignUpScreen} />
-        <Stack.Screen name="ProfileSetUp" component={ProfileSetUp} />
-        <Stack.Screen name="ResetPasswordScreen" component={ResetPasswordScreen} />
-        <Stack.Screen name="ChangePassword" component={ChangePassword}/>
-        <Stack.Screen name="IntroScreen" component={IntroScreen} />
-        <Stack.Screen name="WelcomeScreen" component={WelcomeScreen} />
+        <Stack.Screen name="BasicInfo" component={BasicInfoScreen} />
+        <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
+        <Stack.Screen name="ChangePassword" component={ChangePasswordScreen}/>
+        <Stack.Screen name="Introduction" component={IntroductionScreen} />
+        <Stack.Screen name="Welcome" component={WelcomeScreen} />
         <Stack.Screen name="HomeTabs" component={HomeTabs} />
         <Stack.Screen name="ImageViewer" component={ImageViewer}/>
         <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen}/>
         <Stack.Screen name="Terms" component={TermsScreen}/>
+        <Stack.Screen name="AgentAssist" component={AgentAssistScreen}/>
+        <Stack.Screen name="AboutUs" component={AboutUsScreen}/>
         <Stack.Screen name="WebBrowser" component={WebViewScreen}/>
 
       </Stack.Navigator>

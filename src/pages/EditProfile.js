@@ -1,15 +1,54 @@
 import React, { useState } from 'react';
-import {View,Text,Image,StyleSheet,TextInput,TouchableOpacity,ScrollView,} from 'react-native';
+import { View, Text, Image, StyleSheet, TextInput, TouchableOpacity, ScrollView } from 'react-native';
+import { useNavigation } from "@react-navigation/native";
+import { useFocusEffect } from '@react-navigation/native';
+import Ionicons from 'react-native-vector-icons/Ionicons';
+import { useAuth } from '../hooks/useAuth';
+import { useQuery } from '@tanstack/react-query';
+import { useDispatch } from 'react-redux';
+import { fetchProfileData } from '../utils/api';
+import { setProfile } from '../store/profileSlice';
+import useRealTimeUpdates from '../hooks/useRealTimeUpdates';
 
 const EditProfileScreen = () => {
+  const { user } = useAuth();
+  const dispatch = useDispatch();
+  const navigation = useNavigation();
   const [bio, setBio] = useState('Hard-working farmer.');
   const [experience, setExperience] = useState('10 years');
 
+  const { data: profile, refetch: refetchProfile } = useQuery({
+    queryKey: ['profile', user?.id_user],
+    queryFn: () => fetchProfileData(user.id_user),
+    enabled: !!user,
+    onSuccess: (data) => dispatch(setProfile(data)),
+  });
+
+  useRealTimeUpdates(user?.id_user);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      
+      refetchProfile();
+
+    }, [])
+  );
+
   return (
     <ScrollView style={styles.container}>
+
+      <View style={styles.header}>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={35} color="#34A853" />
+        </TouchableOpacity>
+
+        <Text style={styles.title}>Edit Profile</Text>
+      </View>
+
+
       {/* Profile Picture Section */}
       <View style={styles.imageSection}>
-        <Image source={require('../assets/images/profilepic.jpg')} style={styles.profileImage} />
+        <Image source={require('../../assets/images/profilepic.jpg')} style={styles.profileImage} />
         <TouchableOpacity style={styles.uploadButton}>
           <Text style={styles.buttonText}>Upload new profile photo</Text>
         </TouchableOpacity>
@@ -18,7 +57,7 @@ const EditProfileScreen = () => {
       {/* Cover Photo Section */}
       <Text style={styles.sectionTitle}>Cover Photo</Text>
       <View style={styles.imageSection}>
-        <Image source={require('../assets/images/coverphoto.jpg')} style={styles.coverImage} />
+        <Image source={require('../../assets/images/coverphoto.jpg')} style={styles.coverImage} />
         <TouchableOpacity style={styles.uploadButton}>
           <Text style={styles.buttonText}>Upload new cover photo</Text>
         </TouchableOpacity>
@@ -61,7 +100,28 @@ const EditProfileScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff', padding: 20 },
+  container: {
+    flex: 1, 
+    backgroundColor: '#fff', 
+    padding: 20 
+  },
+  header: {
+    padding: 10,
+    marginBottom: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  backButton: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+  },
+  title: {
+    fontSize: 16,
+    fontFamily: 'medium',
+    textAlign: 'center',
+  },
   sectionTitle: { fontSize: 18, fontWeight: '', color: '#444', marginBottom: 10 },
   imageSection: { alignItems: 'center', marginBottom: 20 },
   profileImage: { width: 100, height: 100, borderRadius: 50, marginBottom: 10 },

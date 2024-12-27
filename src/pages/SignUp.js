@@ -122,7 +122,7 @@ export default function SignUpScreen({ navigation, route }) {
       
       Alert.alert('Success', 'User signed up successfully.');
   
-      navigation.navigate('ProfileSetUp', { userId: authData.user.id, role });
+      navigation.navigate('BasicInfo', { userId: authData.user.id, role });
   
     } catch (error) {
       Alert.alert('Sign-Up Error', error.message);
@@ -140,7 +140,7 @@ export default function SignUpScreen({ navigation, route }) {
     >
       <StatusBar hidden={false} />
       <ImageBackground 
-        source={require('../../assets/Wheat1.jpg')} 
+        source={require('../../assets/main/Wheat1.jpg')} 
         style={styles.backgroundImage}
       >
         <LinearGradient
@@ -158,9 +158,9 @@ export default function SignUpScreen({ navigation, route }) {
 
           <View style={styles.header}>
             {role === 'consumer' ? (
-              <Image source={require('../../assets/consumer_user.png')} style={styles.logo} />
+              <Image source={require('../../assets/main/consumer_user.png')} style={styles.logo} />
             ) : (
-              <Image source={require('../../assets/farmer_user.png')} style={styles.logo} />
+              <Image source={require('../../assets/main/farmer_user.png')} style={styles.logo} />
             )}
             <Text style={styles.title}>FarmNamin</Text>
           </View>
@@ -269,14 +269,14 @@ export default function SignUpScreen({ navigation, route }) {
               </TouchableOpacity>
               <Text style={styles.label}>I agree to the </Text>
               <TouchableOpacity onPress={() => navigation.navigate('Terms')}>
-                <Text style={[styles.link, { color: agree ? 'white' : 'red' }]}>Terms and Conditions</Text>
+                <Text style={[styles.link, { color: agree ? 'white' : 'blue' }]}>Terms and Conditions</Text>
               </TouchableOpacity>
             </View>
 
             <View style={styles.checkboxWrapper}>
               <Text style={styles.label}> and </Text>
               <TouchableOpacity onPress={() => navigation.navigate('PrivacyPolicy')}>
-                <Text style={[styles.link, { color: agree ? 'white' : 'red' }]}>Privacy Policy</Text>
+                <Text style={[styles.link, { color: agree ? 'white' : 'blue' }]}>Privacy Policy</Text>
               </TouchableOpacity>
               <Text style={styles.label}>.</Text>
             </View>

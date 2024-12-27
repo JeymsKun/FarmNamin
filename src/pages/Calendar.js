@@ -230,7 +230,7 @@ const CalendarScreen = () => {
     });
     
     const handleArrowClick = (schedule) => {
-        navigation.navigate('Scheduler', { scheduleToEdit: schedule });
+        navigation.navigate('Schedule', { scheduleToEdit: schedule });
     };
 
     const handleDelete = async (scheduleId) => {
@@ -535,7 +535,7 @@ const CalendarScreen = () => {
                         )}
                     </View>
 
-                <TouchableOpacity style={styles.createScheduleButton} onPress={() => navigation.navigate('Scheduler')}>
+                <TouchableOpacity style={styles.createScheduleButton} onPress={() => navigation.navigate('Schedule')}>
                     <Text style={styles.doneText}>Create Schedule</Text>
                     <Feather name="arrow-right" size={30} color="#28B805" />
                 </TouchableOpacity>

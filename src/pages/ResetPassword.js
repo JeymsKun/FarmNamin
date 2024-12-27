@@ -53,7 +53,7 @@ export default function ResetPasswordScreen({ navigation, route }) {
       showsVerticalScrollIndicator={false}
     >
     <ImageBackground
-      source={require('../../assets/Wheat1.jpg')}
+      source={require('../../assets/main/Wheat1.jpg')}
       style={styles.backgroundImage}
     >
       <LinearGradient
@@ -70,9 +70,9 @@ export default function ResetPasswordScreen({ navigation, route }) {
 
         <View style={styles.header}>
           {role === 'consumer' ? (
-            <Image source={require('../../assets/consumer_user.png')} style={styles.logo} />
+            <Image source={require('../../assets/main/consumer_user.png')} style={styles.logo} />
           ) : (
-            <Image source={require('../../assets/farmer_user.png')} style={styles.logo} />
+            <Image source={require('../../assets/main/farmer_user.png')} style={styles.logo} />
           )}
           <Text style={styles.title}>FarmNamin</Text>
         </View>

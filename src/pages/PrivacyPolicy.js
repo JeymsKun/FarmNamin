@@ -1,7 +1,8 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { View, StyleSheet, TouchableOpacity, SafeAreaView, StatusBar, Platform, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, SafeAreaView, StatusBar, Platform, ActivityIndicator, Linking } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 
 const privacyHtml = `
 <!DOCTYPE html>
@@ -103,7 +104,7 @@ const privacyHtml = `
     <p>We may update this privacy policy from time to time. We will notify you of any changes by posting the new privacy policy on this page and updating the effective date.</p>
 
     <h2>8. Contact Us</h2>
-    <p>If you have any questions or concerns about this privacy policy, please email us at <a href="mailto:support@farmnamin.com">support@farmnamin.com</a>.</p>
+    <p>If you have any questions or concerns about this privacy policy, please email us at <a href="mailto:maserin.jamesdavid000.com">support@transfarmers.com</a>.</p>
 </body>
 </html>
 `;
@@ -113,11 +114,10 @@ export default function PrivacyPolicy() {
   const webviewRef = useRef(null);
   const [loading, setLoading] = useState(true);
   const [showWebView, setShowWebView] = useState(false);
+  const navigation = useNavigation();
 
   const goBack = () => {
-    if (webviewRef.current && webviewRef.current.canGoBack()) {
-      webviewRef.current.goBack();
-    }
+    navigation.goBack();
   };
 
   const reload = () => {
@@ -127,12 +127,12 @@ export default function PrivacyPolicy() {
   };
 
   const onShouldStartLoadWithRequest = (request) => {
-    if (request.url.startsWith('mailto:')) {
-      Linking.openURL(request.url);
-      return false;
-    }
-    return true;
-  };
+      if (request.url.startsWith('mailto:')) {
+        Linking.openURL('mailto:maserin.jamesdavid000@gmail.com'); 
+        return false; 
+      }
+      return true; 
+    };
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -188,8 +188,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 30,
-    height: 80,
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
+    height: 50,
     backgroundColor: '#fff',
     zIndex: 1,
   },

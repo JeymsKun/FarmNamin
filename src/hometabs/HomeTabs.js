@@ -3,31 +3,35 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator, CardStyleInterpolators } from '@react-navigation/stack';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useFocusEffect } from '@react-navigation/native';
-import { View, Animated, Dimensions, BackHandler } from 'react-native';
-import MarketScreen from './../pages/Marketplace';
+import { View, Animated, useWindowDimensions, BackHandler } from 'react-native';
+import MarketplaceScreen from './../pages/Marketplace';
 import ProductScreen from './../pages/Product';
-import ProfileScreen from './../pages/Profile';
-import ProfileFarmer from './../pages/ProfileFarmer';  
-import HomepageFarmer from './../pages/HomepageFarmer';
+import ProfileConsumerScreen from '../pages/ProfileConsumer';
+import ProfileFarmerScreen from './../pages/ProfileFarmer';  
+import HomepageScreen from '../pages/Homepage';
 import PostScreen from './../pages/Post';
 import CalendarScreen from '../pages/Calendar';
-import SchedulerScreen from '../pages/Scheduler';
-import FinanceScreen from '../pages/Finance';
+import ScheduleScreen from '../pages/Schedule';
+import TraceAndTraceScreen from '../pages/TrackAndTrace';
 import TagScreen from '../pages/Tag';
 import FinancialLogScreen from '../pages/FinancialLog';
 import OverviewBalanceScreen from '../pages/OverviewBalance';
-import AccountScreen from '../pages/Account';
-import ShowAccountScreen from '../pages/ShowAccount';
-import TipsScreen from '../pages/Tips';
+import DisplayFinancialAccScreen from '../pages/DisplayFinancialAcc';
+import FinancialAccountScreen from '../pages/FinancialAccount';
+import AgricultureTipsScreen from '../pages/AgricultureTips';
 import WeatherScreen from '../pages/Weather';
 import MarketPriceScreen from '../pages/MarketPrice';
 import ProductPostScreen from '../pages/ProductPost';
 import ConsumerScreen from '../pages/Consumer';
 import AdditonalDetailsScreen from '../pages/AdditionalDetails';
+import ProductViewerScreen from '../support/ProductViewer';
+import PostDetailScreen from '../support/PostDetail';
+import ConsumerOrderPageScreen from '../pages/ConsumerOrderPage';
+import ProfileSettingsScreen from '../pages/ProfileSettings';
+import EditProfileScreen from '../pages/EditProfile';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
-const { width } = Dimensions.get('window');
 
 const ProductStack = () => {
     return (
@@ -37,18 +41,18 @@ const ProductStack = () => {
                 cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS,
             }}
         >
-            <Stack.Screen name="FarmerProductScreen" component={ProductScreen} />
+            <Stack.Screen name="Product" component={ProductScreen} />
             <Stack.Screen name="Post" component={PostScreen} />
             <Stack.Screen name="Calendar" component={CalendarScreen}/>
-            <Stack.Screen name="Scheduler" component={SchedulerScreen}/>
-            <Stack.Screen name="Finance" component={FinanceScreen}/>
+            <Stack.Screen name="Schedule" component={ScheduleScreen}/>
+            <Stack.Screen name="TraceAndTrack" component={TraceAndTraceScreen}/>
             <Stack.Screen name="Tag" component={TagScreen}/>
             <Stack.Screen name="FinancialLog" component={FinancialLogScreen}/>
             <Stack.Screen name="OverviewBalance" component={OverviewBalanceScreen}/>
-            <Stack.Screen name="Account" component={AccountScreen}/>
-            <Stack.Screen name="ShowAccount" component={ShowAccountScreen}/>
-            <Stack.Screen name="Marketplace" component={MarketScreen} />
-            <Stack.Screen name="Tips" component={TipsScreen}/>
+            <Stack.Screen name="DisplayFinancialAcc" component={DisplayFinancialAccScreen}/>
+            <Stack.Screen name="FinancialAccount" component={FinancialAccountScreen}/>
+            <Stack.Screen name="Marketplace" component={MarketplaceScreen} />
+            <Stack.Screen name="AgricultureTips" component={AgricultureTipsScreen}/>
             <Stack.Screen name="Weather" component={WeatherScreen}/>
             <Stack.Screen name="MarketPrice" component={MarketPriceScreen}/>
             <Stack.Screen name="ProductPost" component={ProductPostScreen}/>
@@ -58,7 +62,7 @@ const ProductStack = () => {
     );
 };
 
-const MarketStack = () => {
+const MarketplaceStack = () => {
     return (
         <Stack.Navigator
             screenOptions={{
@@ -66,13 +70,13 @@ const MarketStack = () => {
                 cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS,
             }}
         >
-            <Stack.Screen name="Marketplace" component={MarketScreen} />
-        
+            <Stack.Screen name="Marketplace" component={MarketplaceScreen} />
+            <Stack.Screen name="ProductViewer" component={ProductViewerScreen}/>
         </Stack.Navigator>
     );
 };
 
-const HomeStack = () => {
+const HomepageStack = () => {
     return (
         <Stack.Navigator
             screenOptions={{
@@ -80,13 +84,14 @@ const HomeStack = () => {
                 cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS,
             }}
         >
-            <Stack.Screen name="HomepageFarmer" component={HomepageFarmer} />
+            <Stack.Screen name="Homepage" component={HomepageScreen} />
+            <Stack.Screen name="PostDetail" component={PostDetailScreen}/>
         </Stack.Navigator>
     );
 };
 
 
-const ProfileStack = () => {
+const ProfileConsumerStack = () => {
     return (
         <Stack.Navigator
             screenOptions={{
@@ -94,7 +99,8 @@ const ProfileStack = () => {
                 cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS,
             }}
         >
-            <Stack.Screen name="Profile" component={ProfileScreen} />
+            <Stack.Screen name="ProfileConsumer" component={ProfileConsumerScreen} />
+            <Stack.Screen name="ConsumerOrderPage" component={ConsumerOrderPageScreen}/>
         </Stack.Navigator>
     );
 };
@@ -107,18 +113,21 @@ const ProfileFarmerStack = () => {
                 cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS,
             }}
         >
-            <Stack.Screen name="ConsumerScreen" component={ConsumerScreen} />
+            <Stack.Screen name="ProfileFarmer" component={ProfileFarmerScreen} />
+            <Stack.Screen name="ProfileSettings" component={ProfileSettingsScreen}/>
+            <Stack.Screen name="EditProfile" component={EditProfileScreen}/>
         </Stack.Navigator>
     );
 };
 
 const HomeTabs = ({ route }) => {
     const translateX = useRef(new Animated.Value(0)).current;
+    const { width } = useWindowDimensions(); 
     const [tabWidth, setTabWidth] = useState(width / 3);
     const { role } = route.params;
 
     const animateLine = (index) => {
-            Animated.spring(translateX, {
+        Animated.spring(translateX, {
             toValue: index * tabWidth,
             useNativeDriver: true,
         }).start();
@@ -137,21 +146,8 @@ const HomeTabs = ({ route }) => {
     );
 
     useEffect(() => {
-        const handleResize = () => {
-        setTabWidth(Dimensions.get('window').width / 3);
-    };
-
-        const dimensionsHandler = Dimensions.addEventListener('change', handleResize);
-
-        return () => {
-            dimensionsHandler?.remove();
-        };
-    }, []);
-
-const screenOptions = {
-    headerShown: false,
-    cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS,
-};
+        setTabWidth(width / 3);
+    }, [width]);
 
     return (
         <View style={{ flex: 1 }}>
@@ -173,17 +169,24 @@ const screenOptions = {
                         }
                         return <Ionicons name={iconName} size={size} color={color} />;
                     },
-                tabBarActiveTintColor: 'green',
-                tabBarInactiveTintColor: 'gray',
-                headerShown: false,
-                tabBarStyle: { 
-                    position: 'relative', 
-                    display: 'flex', 
-                    height: 55, 
-                    backgroundColor: '#f5f5f5',
-                },
-                tabBarLabelStyle: { fontSize: 14, fontFamily: 'medium', marginBottom: 7 }, 
-                tabBarIconStyle: { size: 24, marginTop: 1 },
+                    tabBarActiveTintColor: 'green',
+                    tabBarInactiveTintColor: 'gray',
+                    headerShown: false,
+                    tabBarStyle: { 
+                        position: 'relative', 
+                        display: 'flex', 
+                        height: 55, 
+                        backgroundColor: '#f5f5f5',
+                    },
+                    tabBarLabelStyle: { 
+                        fontSize: width < 375 ? 12 : 14, 
+                        fontFamily: 'medium', 
+                        marginBottom: 7 
+                    }, 
+                    tabBarIconStyle: { 
+                        size: width < 375 ? 20 : 24, 
+                        marginTop: 1 
+                    },
                 })}
                 screenListeners={({ route }) => ({
                     tabPress: (e) => {
@@ -206,18 +209,18 @@ const screenOptions = {
                 })}
             >
                 {/* For both consumer and farmer */}
-                <Tab.Screen name="HomeScreen" component={HomeStack} options={{ title: 'Home' }} />
+                <Tab.Screen name="HomeScreen" component={HomepageStack} options={{ title: 'Home' }} />
 
                 {/* Marketplace/Products */}
                 {role === 'consumer' ? (
-                    <Tab.Screen name="MarketScreen" component={MarketStack} options={{ title: 'Marketplace' }} />
+                    <Tab.Screen name="MarketScreen" component={MarketplaceStack} options={{ title: 'Marketplace' }} />
                 ) : (
                     <Tab.Screen name="ProductScreen" component={ProductStack} options={{ title: 'Product' }} />
                 )}
 
                 {/* Consumer and Farmer Profiles */}
                 {role === 'consumer' ? (
-                    <Tab.Screen name="ProfileScreen" component={ProfileStack} options={{ title: 'Profile' }} />
+                    <Tab.Screen name="ProfileScreen" component={ProfileConsumerStack} options={{ title: 'Profile' }} />
                 ) : (
                     <Tab.Screen name="ProfileFarmerScreen" component={ProfileFarmerStack} options={{ title: 'Profile' }} />
                 )}
