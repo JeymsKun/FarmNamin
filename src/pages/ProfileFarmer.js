@@ -1,17 +1,18 @@
 import React, { useState, useRef } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
-import { View, Text, StyleSheet, Image, TouchableOpacity, Modal, ImageBackground, StatusBar, FlatList, Animated } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity, ImageBackground, StatusBar, FlatList, Animated, ScrollView } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useQuery } from '@tanstack/react-query';
 import { useDispatch } from 'react-redux';
 import { setProfile, setProducts } from '../store/profileSlice';
-import { fetchProfileData, fetchUserProducts } from '../utils/api';
+import { fetchProfileData, fetchUserProducts, fetchFeedbacks } from '../utils/api';
 import { useAuth } from '../hooks/useAuth';
 import useRealTimeUpdates from '../hooks/useRealTimeUpdates';
 
 class ProductItem extends React.PureComponent {
   render() {
-    const { item, navigateToProductDetails } = this.props;
+    const { item, navigateToProductDetails, productNameFontSize, productPriceFontSize, formatPrice } = this.props;
 
     return (
       <View style={styles.productCard}>
@@ -24,8 +25,8 @@ class ProductItem extends React.PureComponent {
           />
         </TouchableOpacity>
         <View style={styles.productInfo}>
-          <Text style={styles.productName}>{item.name}</Text>
-          <Text style={styles.productPrice}>₱{parseFloat(item.price).toFixed(2)}</Text>
+          <Text style={[styles.productName, { fontSize: productNameFontSize }]}>{item.name}</Text>
+          <Text style={[styles.productPrice, { fontSize: productPriceFontSize }]}>{formatPrice(item.price)}</Text>
         </View>
       </View>
     );
@@ -44,6 +45,21 @@ const ProfileScreen = ({ navigation }) => {
   const [fadeAnim] = useState(new Animated.Value(1));
   const profileScale = useRef(new Animated.Value(1)).current; 
   const flatListRef = useRef(null);
+
+  const getFontSizes = (item) => {
+    const productNameFontSize = item.name.length > 15 ? 11 : 14; 
+    const productPriceFontSize = item.price > 8 ? 11 : 15; 
+    return { productNameFontSize, productPriceFontSize };
+  };
+
+  const formatPrice = (price) => {
+    return new Intl.NumberFormat('en-PH', {
+      style: 'currency',
+      currency: 'PHP',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(price);
+  };
 
   useFocusEffect(
     React.useCallback(() => {
@@ -71,6 +87,12 @@ const ProfileScreen = ({ navigation }) => {
     onSuccess: (data) => dispatch(setProducts(data)),
   });
 
+  const { data: feedbackData = [], isLoading: loadingFeedback, refetch: refetchFeedbacks } = useQuery({
+    queryKey: ['feedback', user?.id_user],
+    queryFn: () => fetchFeedbacks(user.id_user), 
+    staleTime: 1000 * 60 * 5,
+  });
+
   useRealTimeUpdates(user?.id_user);
 
   const handleRefresh = async () => {
@@ -93,36 +115,6 @@ const ProfileScreen = ({ navigation }) => {
       setShowMessage(false); 
     });
   };
-  
-  const handleCloseModal = (setModalVisible) => {
-    Animated.timing(fadeAnim, {
-      toValue: 0, 
-      duration: 300, 
-      useNativeDriver: true,
-    }).start(() => {
-      setModalVisible(false); 
-      fadeAnim.setValue(1); 
-    });
-  };
-
-  const animateProfile = () => {
-    Animated.sequence([
-      Animated.timing(profileScale, {
-        toValue: 1.1,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-      Animated.timing(profileScale, {
-        toValue: 1,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-    ]).start(() => setProfileModalVisible(true));
-  };  
-
-  const navigateToReviewScreen = () => {
-    navigation.navigate('ReviewScreen'); 
-  };
 
   const navigateToProductDetails = (productId) => {
     navigation.navigate('ProductDetailsScreen', { productId });
@@ -132,38 +124,10 @@ const ProfileScreen = ({ navigation }) => {
     navigation.navigate('ProfileSettings'); 
   };
 
-  const renderReviewItem = ({ item }) => (
-    <View style={styles.reviewCard}>
-      <View style={styles.reviewContent}>
-        <View style={styles.ratingContainer}>
-          {Array.from({ length: 10 }, (_, i) => (
-            <Icon
-              key={i}
-              name="star"
-              size={15}
-              color={i < item.rating ? '#FFD700' : '#CCCCCC'} 
-              style={styles.starIcon}
-            />
-          ))}
-        </View>
-        <Text style={styles.reviewText}>
-          {item.text.length > 30 ? `${item.text.substring(0, 30)}...` : item.text}
-        </Text>
-        <View style={styles.tagsContainer}>
-          {item.tags.map((tag, index) => (
-            <View key={index} style={styles.tag}>
-              <Text style={styles.tagText}>{tag}</Text>
-            </View>
-          ))}
-        </View>
-      </View>
-    </View>
-  );
-
   const renderUserPhoto = () => {
     return(
       <View style={styles.imageContainer}>
-        <TouchableOpacity onPress={() => setCoverModalVisible(true)}>
+        <TouchableOpacity onPress={() => navigation.navigate('ImageViewer', { uri: profile.cover_photo })}>
           <ImageBackground 
             source={profile?.cover_photo ? { uri: profile.cover_photo } : DEFAULT_COVER_PHOTO}
             style={styles.coverPhoto} 
@@ -172,17 +136,15 @@ const ProfileScreen = ({ navigation }) => {
         </TouchableOpacity>
 
         <View style={styles.headerContainer}>
-          <Animated.View style={{ transform: [{ scale: profileScale }] }}>
-            <TouchableOpacity onPress={animateProfile}>
-              <View style={styles.profileImageContainer}>
-                <Image
-                  source={profile?.profile_pic ? { uri: profile.profile_pic } : DEFAULT_PROFILE_IMAGE} 
-                  style={styles.profileImage} 
-                  resizeMode="contain" 
-                />
-              </View>
-            </TouchableOpacity>
-          </Animated.View>
+          <TouchableOpacity onPress={() => navigation.navigate('ImageViewer', { uri: profile.profile_pic })}>
+            <View style={styles.profileImageContainer}>
+              <Image
+                source={profile?.profile_pic ? { uri: profile.profile_pic } : DEFAULT_PROFILE_IMAGE} 
+                style={styles.profileImage} 
+                resizeMode="cover" 
+              />
+            </View>
+          </TouchableOpacity>
 
           <TouchableOpacity onPress={() => handleDotsClick()}>
             <Icon name="more-horiz" size={30} color="green" style={styles.dotsIcon} />
@@ -222,12 +184,74 @@ const ProfileScreen = ({ navigation }) => {
       </View>
     );
   };
-  
+
+  const renderStars = (rating) => {
+    const stars = [];
+    for (let i = 1; i <= 5; i++) {
+      stars.push(
+        <Ionicons
+          key={i}
+          name={i <= rating ? "star" : "star-outline"} 
+          size={15} 
+          color="#FFEB3B" 
+        />
+      );
+    }
+    return stars;
+  };
+
+  const renderFeedback = () => {
+    const truncateDescription = (description) => {
+      if (description.length > 22) {
+        return description.substring(0, 22) + '...';
+      }
+        return description;
+    };
+
+    return (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          {feedbackData.map((feedback) => (
+            <View key={feedback.id} style={styles.feedbackCard}>
+              <View style={styles.feedbackInfo}>
+                <View style={styles.ratingContainer}>
+                  {renderStars(feedback.rating)}
+                </View>
+
+                <View style={styles.descriptionWrapper}>
+                  <Text style={styles.feedbackDescription}>
+                    {truncateDescription(feedback.description)}
+                  </Text>
+                </View>
+
+                <View style={styles.tagWrapper}>
+                  <Text style={styles.feedbackTag}>{feedback.tags}</Text>
+                </View>
+              </View>
+            </View>
+          ))}
+        </ScrollView>
+    );
+  };
+
+  const renderItem = ({ item }) => {
+    const { productNameFontSize, productPriceFontSize } = getFontSizes(item);
+
+    return (
+      <ProductItem 
+        item={item} 
+        formatPrice={formatPrice}
+        navigateToProductDetails={navigateToProductDetails} 
+        productNameFontSize={productNameFontSize} 
+        productPriceFontSize={productPriceFontSize}
+      />
+    );
+  };
+
   return (
     <FlatList
       ref={flatListRef}
       data={products}
-      renderItem={({ item }) => <ProductItem item={item} navigateToProductDetails={navigateToProductDetails} />}
+      renderItem={renderItem}
       keyExtractor={(item) => item.id.toString()}
       contentContainerStyle={styles.container}
       showsVerticalScrollIndicator={false}
@@ -241,46 +265,16 @@ const ProfileScreen = ({ navigation }) => {
           {renderUserInfo()}
 
           <View style={styles.reviewContainer}>
-            <TouchableOpacity onPress={navigateToReviewScreen}>
+            <TouchableOpacity onPress={() => navigation.navigate('ConsumerFeedback')}>
               <Text style={styles.reviewTitle}>Go to Consumer's Feedback</Text>
             </TouchableOpacity>
-            
-
+            {renderFeedback()}
             <View>
               <Text style={styles.sectionTitle}>My Posted Products</Text>
             </View>
           </View>
 
         </View>
-      }
-      ListFooterComponent={
-        <>
-         <Modal
-          visible={profileModalVisible}
-          transparent={true}
-          animationType="fade"
-          onRequestClose={() => handleCloseModal(setProfileModalVisible)}
-        >
-          <Animated.View style={[styles.modalContainer, { opacity: fadeAnim }]}>
-            <TouchableOpacity style={styles.modalBackground} onPress={() => handleCloseModal(setProfileModalVisible)}>
-              <Image source={DEFAULT_PROFILE_IMAGE} style={styles.fullProfileImage} />
-            </TouchableOpacity>
-          </Animated.View>
-        </Modal>
-
-        <Modal
-          visible={coverModalVisible}
-          transparent={true}
-          animationType="fade"
-          onRequestClose={() => handleCloseModal(setCoverModalVisible)}
-        >
-          <Animated.View style={[styles.modalContainer, { opacity: fadeAnim }]}>
-            <TouchableOpacity style={styles.modalBackground} onPress={() => handleCloseModal(setCoverModalVisible)}>
-              <Image source={DEFAULT_COVER_PHOTO} style={styles.fullCoverImage} />
-            </TouchableOpacity>
-          </Animated.View>
-        </Modal>
-        </>
       }
       onRefresh={handleRefresh}
       refreshing={loadingProducts || loadingProfile}
@@ -362,6 +356,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   name: {
+    textAlign: 'center',
     fontSize: 16,
     fontFamily: 'medium',
   },
@@ -369,12 +364,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: 'black',
     marginVertical: 5,
-    fontFamily: 'medium',
+    fontFamily: 'regular',
   },
   experience: {
-    fontSize: 14,
+    fontSize: 12,
+    fontFamily: 'regular',
     color: 'gray',
-    fontFamily: 'Poppins-Medium',
   },
   bioContainer: {
     width: '100%',
@@ -470,17 +465,22 @@ const styles = StyleSheet.create({
   productCard: {
     width: '48%',
     margin: '1%',
+    borderRadius: 10,
+    backgroundColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   productImage: {
     width: '100%',
-    height: 200,
-    borderWidth: 1,
-    borderColor: '#ddd',
+    height: 150,
+    borderTopLeftRadius: 10, 
+    borderTopRightRadius: 10,
   },
   productInfo: {
     padding: 10,
-    borderWidth: 1,
-    borderColor: '#ddd',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -571,6 +571,57 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: 'medium',
     color: '#666',
+  },
+  feedbackContainer: {
+    padding: 5,
+  },
+  feedbackCard: {
+    marginRight: 10,
+    backgroundColor: '#4CAF50',
+    alignItems: 'center',
+    flexDirection: 'row',
+    borderRadius: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  ratingContainer: {
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    position: 'relative',
+  },
+  feedbackInfo: {
+    padding: 10,
+    justifyContent: 'center',
+  },
+  text: {
+    fontSize: 13,
+    fontFamily: 'regular',
+  },
+  descriptionWrapper:{
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  feedbackDescription: {
+    fontSize: 12,
+    fontFamily: 'regular',
+    color: 'white',
+  },
+  tagWrapper: {
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  feedbackTag: {
+    backgroundColor: 'white',
+    borderRadius: 10,
+    padding: 5,
+    fontSize: 12,
+    fontFamily: 'regular',
+    color: 'black',
   },
 });
 

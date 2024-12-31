@@ -4,6 +4,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useNavigation } from "@react-navigation/native";
 import { useAuth } from '../hooks/useAuth';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import AntDesign from 'react-native-vector-icons/AntDesign';
 import { useDispatch } from 'react-redux';
 import { setProducts } from '../store/allProductSlice'; 
@@ -82,7 +83,7 @@ class ProductItem extends React.Component {
         <TouchableOpacity style={styles.productInfo} 
           onPress={() => {
             setIsProductDetailActive(true); 
-            navigation.navigate('ProductViewer', { product: item, isFavorite });
+            navigation.navigate('ProductViewer', { product: item, isFavorite, id_user: item.id_user });
           }}>
           <Text style={[styles.productName, { fontSize: productNameFontSize }]}>{item.name}</Text>
           <Text style={[styles.productPrice, { fontSize: productPriceFontSize }]}>{formatPrice(item.price)}</Text>
@@ -164,10 +165,23 @@ const Marketplace = () => {
   const renderHeader = () => {
     return (
       <View style={styles.headerContainer}>
-        <Text style={styles.headerText}>Welcome to Marketplace</Text>
-        <TouchableOpacity>
-          <AntDesign name="questioncircleo" size={15} color="black" />
-        </TouchableOpacity>
+        <View style={styles.headerWrapper}>  
+          <Text style={styles.headerText}>Welcome to Marketplace</Text>
+          <TouchableOpacity>
+            <AntDesign name="questioncircleo" size={15} color="black" />
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.notificationButton}>
+          <TouchableOpacity onPress={() => navigation.navigate('Notification')}>
+            <Text style={styles.notificationText}>Notification</Text>
+          </TouchableOpacity>
+          
+          <Icon name="bell" size={24} color="green" />
+          <View style={styles.notificationBadge}>
+            <Text style={styles.notificationCount}>3</Text>
+          </View>
+        </View>
       </View>
     );
   }
@@ -297,14 +311,19 @@ const Marketplace = () => {
 const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#f5f5f5',
     padding: 10,
   },
   headerContainer: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center', 
     padding: 10,
     marginBottom: 10, 
+  },
+  headerWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   headerText: {
     fontSize: width * 0.04, 
@@ -366,8 +385,8 @@ const styles = StyleSheet.create({
     position: 'relative',
     width: '100%',
     height: 150,
-    borderWidth: 1,
-    borderColor: '#ddd',
+    borderTopLeftRadius: 10, 
+    borderTopRightRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#f0f0f0', 
@@ -386,8 +405,6 @@ const styles = StyleSheet.create({
     height: 150,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#ddd',
     backgroundColor: '#f0f0f0',
   },
   noImageText: {
@@ -398,17 +415,22 @@ const styles = StyleSheet.create({
   productCard: {
     width: '48%',
     margin: '1%',
+    borderRadius: 10,
+    backgroundColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   productImage: {
     width: '100%',
     height: 150,
-    borderWidth: 1,
-    borderColor: '#ddd',
+    borderTopLeftRadius: 10, 
+    borderTopRightRadius: 10,
   },
   productInfo: {
     padding: 10,
-    borderWidth: 1,
-    borderColor: '#ddd',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -435,6 +457,33 @@ const styles = StyleSheet.create({
     color: 'gray', 
     textAlign: 'center',
     fontFamily: 'regular',
+  },
+  notificationButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+  },
+  notificationText: {
+    color: 'green',
+    fontFamily: 'bold',
+    fontSize: width * 0.035,
+    marginLeft: 5,
+  },
+  notificationBadge: {
+    position: 'absolute',
+    right: -5,
+    top: -5,
+    backgroundColor: 'red',
+    borderRadius: 10,
+    width: 18,
+    height: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  notificationCount: {
+    color: '#FFF',
+    fontSize: 10,
+    fontFamily: 'Poppins-Bold',
   },
 });
 

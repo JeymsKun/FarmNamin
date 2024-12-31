@@ -10,7 +10,7 @@ import { format, parseISO } from 'date-fns'
 import 'react-native-get-random-values'; 
 import { useAuth } from '../hooks/useAuth'; 
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchPosts, fetchProducts } from '../utils/api';
+import { fetchPosts, fetchProducts, fetchNewOrders } from '../utils/api';
 import { setSelectedPost, setSelectedProduct, clearSelectedPost, clearSelectedProduct } from '../store/productSlice';
 import { useQuery } from '@tanstack/react-query';
 
@@ -177,6 +177,17 @@ const ProductScreen = () => {
     staleTime: 1000 * 60 * 5, 
   });
 
+  const { data: newOrders = [], isLoading: loadingOrders } = useQuery({
+    queryKey: ['newOrders', user?.id_user],
+    queryFn: () => {
+      console.log('Fetching new orders for user ID:', user?.id_user); 
+      return fetchNewOrders(user?.id_user); 
+    },
+    enabled: !!user?.id_user, 
+  });
+
+  const todayNewOrdersCount = newOrders.length;
+
   const selectedPost = useSelector((state) => state.product.selectedPost);
   const selectedProduct = useSelector((state) => state.product.selectedProduct);
 
@@ -282,25 +293,33 @@ const ProductScreen = () => {
   }, [menuTimeout]);
 
   const renderHeader = () => {
+  
     return (
       <View style={styles.header}>
         <TouchableOpacity style={styles.marketplaceButton} onPress={() => navigation.navigate('Marketplace')}>
           <Text style={styles.marketplaceText}>Go to marketplace</Text>
         </TouchableOpacity>
-
+  
         <View style={styles.notificationButton}>
-          <TouchableOpacity>
+          <TouchableOpacity onPress={() => navigation.navigate('NotificationFarmer')}>
             <Text style={styles.notificationText}>Notification</Text>
           </TouchableOpacity>
+  
           <Icon name="bell" size={24} color="green" />
-          <View style={styles.notificationBadge}>
-            <Text style={styles.notificationCount}>3</Text>
-          </View>
+          {todayNewOrdersCount > 0 && ( 
+            <View style={styles.notificationBadge}>
+              {loadingOrders ? (
+                <ActivityIndicator size={20} color="white" />
+              ) : (
+                <Text style={styles.notificationCount}>{todayNewOrdersCount}</Text>
+              )}
+            </View>
+          )}
         </View>
       </View>
     );
   };
-
+  
   const renderCarousel = () => { 
     return (
       <View style={styles.carouselSection}>
@@ -635,8 +654,8 @@ const styles = StyleSheet.create({
   },
   notificationCount: {
     color: '#FFF',
-    fontSize: 10,
-    fontFamily: 'Poppins-Bold',
+    fontSize: 12,
+    fontFamily: 'bold',
   },
   dotContainer: {
     flexDirection: 'row',

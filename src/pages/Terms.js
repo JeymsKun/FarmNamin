@@ -150,21 +150,15 @@ export default function App() {
         <View style={styles.loaderContainer}>
           <ActivityIndicator size="large" color="#4CAF50" />
         </View>
-      ) : null}
-
-      <View style={styles.webviewContainer}>
-         {showWebView && (
-          <WebView
+      ) : showWebView ? (
+        <WebView
             ref={webviewRef}
             originWhitelist={['*']}
             source={{ html: termsHtml }}
-            style={styles.webview}
-            onLoadStart={() => setLoading(true)} 
-            onLoadEnd={() => setLoading(false)} 
+            style={styles.webView}
             onShouldStartLoadWithRequest={onShouldStartLoadWithRequest}
           />
-        )}
-      </View>
+      ) : null}
 
     </SafeAreaView>
   );
@@ -184,15 +178,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     zIndex: 1, 
   },
-  webviewContainer: {
-    flex: 1, 
-  },
-  webview: {
-    flex: 1, 
-  },
   loaderContainer: {
     flex: 1,
-    justifyContent: 'center', 
-    alignItems: 'center', 
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  webView: {
+    flex: 1,
   },
 });

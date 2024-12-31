@@ -1,86 +1,110 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  Button,
-  StyleSheet,
-  Alert,
-  Image,
-  TouchableOpacity,
-  Modal,
-  ScrollView,
-} from 'react-native';
-// import { CheckBox } from 'react-native-elements';
+import { View, Text, Dimensions, StyleSheet, Image, TouchableOpacity, Modal, ScrollView } from 'react-native';
+import CustomAlert from '../support/CustomAlert';
+import { useAuth } from '../hooks/useAuth';
 import { Ionicons } from '@expo/vector-icons';
+import { supabase } from '../backend/supabaseClient';
+
+const { width, height } = Dimensions.get('window');
 
 import headerImage from '../../assets/images/order-header.webp';
 
-const ConsumerOrderPage = ({ navigation }) => {
-  const orderId = "12345";
-  const product = "Dako nga Talong";
-  const price = "₱15.00";
-  const quantity = 2;
-  const totalPrice = "₱30.00";
-  const farmerName = "Mang Kanor Rodrigo";
-  const farmerContact = "09123456789";
-  const productImageUrl = "https://via.placeholder.com/150";
-  const farmerImageUrl = "https://via.placeholder.com/80";
-
+const ConsumerOrderPage = ({ route, navigation }) => {
+  const { orderData } = route.params;
+  const { user } = useAuth();
   const [modalVisible, setModalVisible] = useState(false);
   const [isChecked, setIsChecked] = useState(false);
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertMessage, setAlertMessage] = useState('');
+  const [alertTitle, setAlertTitle] = useState('');
 
-  const handleProceedOrder = () => {
+  const handleProceedOrder = async () => {
     if (isChecked) {
       setModalVisible(false);
-      Alert.alert(
-        'Order Recorded',
-        'Your order has been recorded. Please wait until the farmer confirms it after you have contacted them.'
-      );
-    } else {
-      Alert.alert('Confirmation Required', 'Please check the box to proceed.');
+
+      const { data, error } = await supabase
+        .from('orders') 
+        .insert([
+            {
+              order_id: orderData.orderId,
+              product_name: orderData.product,
+              product_location: orderData.productLocation,
+              price: orderData.price,
+              quantity: orderData.quantity,
+              total_price: orderData.totalPrice,
+              farmer_name: orderData.farmerName,
+              farmer_contact: orderData.farmerContact,
+              farmer_id: orderData.farmer_id,
+              consumer_id: user.id_user,
+              created_at: new Date().toISOString(),
+            }
+        ]);
+
+      console.log('check farmer_id:', orderData.farmer_id);
+
+    if (error) {
+      showAlert("Order Error", "Failed to record the order. Please try again.");
+      console.error(error);
+      return;
+    }
+      showAlert("Order Recorded", "Your order has been recorded. Please wait until the farmer confirms it after you have contacted them.");
+      
+      setTimeout(() => {
+        navigation.goBack();
+      }, 3000); 
     }
   };
 
+  const showAlert = (title, message) => {
+    setAlertTitle(title);
+    setAlertMessage(message);
+    setAlertVisible(true);
+  };
+
   return (
-    <ScrollView contentContainerStyle={styles.scrollContainer}>
-      <View style={styles.container}>
-        <View style={styles.headerContainer}>
-          <TouchableOpacity onPress={() => navigation.goBack()}>
-            <Ionicons name="arrow-back" size={24} color="#4CAF50" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Order Process</Text>
-          <View style={{ width: 24 }} /> 
+    <ScrollView 
+      contentContainerStyle={styles.container} 
+      showsVerticalScrollIndicator={false} 
+      keyboardShouldPersistTaps="handled"
+    >
+        <View style={styles.header}>
+            <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+                <Ionicons name="arrow-back" size={35} color="#34A853" />
+            </TouchableOpacity>
+
+            <Text style={styles.title}>Order Process</Text>
         </View>
 
         <Image source={headerImage} style={styles.headerImage} />
 
         <View style={styles.orderDetailsContainer}>
           <Text style={styles.orderText}>
-            <Text style={styles.boldText}>Order ID:</Text> {orderId}
-          </Text>
-          <Image source={{ uri: productImageUrl }} style={styles.productImage} />
-          <Text style={styles.orderText}>
-            <Text style={styles.boldText}>Product:</Text> {product}
+            <Text style={styles.boldText}>Order ID:</Text> {orderData.orderId}
           </Text>
           <Text style={styles.orderText}>
-            <Text style={styles.boldText}>Price:</Text> {price}
+            <Text style={styles.boldText}>Location:</Text> {orderData.productLocation}
           </Text>
           <Text style={styles.orderText}>
-            <Text style={styles.boldText}>Quantity:</Text> {quantity}
+            <Text style={styles.boldText}>Product:</Text> {orderData.product}
           </Text>
           <Text style={styles.orderText}>
-            <Text style={styles.boldText}>Total Price:</Text> {totalPrice}
+            <Text style={styles.boldText}>Price:</Text> {orderData.price}
+          </Text>
+          <Text style={styles.orderText}>
+            <Text style={styles.boldText}>Quantity:</Text> {orderData.quantity}
+          </Text>
+          <Text style={styles.orderText}>
+            <Text style={styles.boldText}>Total Price:</Text> {orderData.totalPrice}
           </Text>
         </View>
 
         <View style={styles.farmerProfileContainer}>
-          <Image source={{ uri: farmerImageUrl }} style={styles.farmerImage} />
           <View style={styles.farmerDetailsContainer}>
             <Text style={styles.farmerDetails}>
-              <Text style={styles.boldText}>Farmer:</Text> {farmerName}
+              <Text style={styles.boldText}>Farmer:</Text> {orderData.farmerName}
             </Text>
             <Text style={styles.farmerDetails}>
-              <Text style={styles.boldText}>Contact:</Text> {farmerContact}
+              <Text style={styles.boldText}>Contact:</Text> {orderData.farmerContact}
             </Text>
           </View>
         </View>
@@ -100,27 +124,24 @@ const ConsumerOrderPage = ({ navigation }) => {
         >
           <View style={styles.modalOverlay}>
             <View style={styles.modalContainer}>
-              <Text style={[styles.modalText]}>
+              <Text style={styles.modalText}>
                 Farmers may not always be online. 
                 Please contact the farmer within 3 days to confirm the order. 
                 Unconfirmed orders will be automatically canceled.
               </Text>
 
               <View style={styles.checkboxContainer}>
-                {/* <CheckBox
-                  checked={isChecked}
+                <TouchableOpacity 
+                  style={styles.checkbox} 
                   onPress={() => setIsChecked(!isChecked)}
-                  containerStyle={[
-                    styles.checkbox,
-                    isChecked && styles.checkedCheckbox,
-                  ]}
-                  title="I understand"
-                  textStyle={[
-                    styles.checkboxText,
-                    isChecked && styles.checkedText,
-                  ]}
-                  checkedColor="#4CAF50"
-                /> */}
+                >
+                  {isChecked ? (
+                    <Ionicons name="checkbox" size={24} color="#4CAF50" />
+                  ) : (
+                    <Ionicons name="square-outline" size={24} color="#4CAF50" />
+                  )}
+                  <Text style={styles.checkboxText}>I understand.</Text>
+                </TouchableOpacity>
               </View>
 
               <View style={styles.modalButtonsContainer}>
@@ -144,11 +165,16 @@ const ConsumerOrderPage = ({ navigation }) => {
             </View>
           </View>
         </Modal>
-      </View>
+
+        <CustomAlert 
+          visible={alertVisible} 
+          title={alertTitle} 
+          message={alertMessage} 
+          onClose={() => setAlertVisible(false)} 
+        />
     </ScrollView>
   );
 };
-
 
 const styles = StyleSheet.create({
   
@@ -156,25 +182,36 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f5f5f5',
     padding: 20,
-    paddingTop: 50,
   },
-  headerContainer: {
-    flexDirection: 'row',
+  header: {
+    padding: 10,
+    marginBottom: height * 0.02,
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 20,
+    justifyContent: 'center',
+    position: 'relative',
   },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
+  backButton: {
+    position: 'absolute',
+    left: 0,
+  },
+  title: {
+    fontSize: width * 0.045,
+    fontFamily: 'medium',
+    textAlign: 'center',
   },
   headerImage: {
     width: '100%',
-    height: 150,
+    height: 200,
     marginBottom: 20,
     marginTop: 10,
-    borderRadius: 10,
     resizeMode: 'cover',
+    borderRadius: 10,
+    backgroundColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   orderDetailsContainer: {
     backgroundColor: '#ffffff',
@@ -188,16 +225,18 @@ const styles = StyleSheet.create({
     marginBottom: 5,
   },
   orderText: {
+    fontFamily: 'medium',
     fontSize: 14,
     marginBottom: 5,
     color: '#333',
   },
   boldText: {
-    fontWeight: 'bold',
+    fontSize: 14,
+    fontFamily: 'bold',
     color: '#333',
   },
   normalText: {
-    fontWeight: 'normal',
+    fontFamily: 'normal',
     color: '#555',
   },
   productImage: {
@@ -230,20 +269,21 @@ const styles = StyleSheet.create({
   },
   farmerDetails: {
     fontSize: 14,
+    fontFamily: 'medium',
     marginBottom: 5,
     color: '#333',
   },
   proceedButton: {
-    backgroundColor: '#28a745',
-    paddingVertical: 10,
-    borderRadius: 5,
+    backgroundColor: '#4CAF50',
+    paddingVertical: 8,
+    borderRadius: 20,
     alignItems: 'center',
     marginVertical: 20,
   },
   proceedButtonText: {
     color: 'white',
     fontSize: 16,
-    fontWeight: 'bold',
+    fontFamily: 'medium',
   },
   modalOverlay: {
     flex: 1,
@@ -262,21 +302,23 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#333',
     marginBottom: 5,
-    fontStyle: 'italic',
+    fontFamily: 'regular',
   },
   checkboxContainer: {
-    marginBottom: 5,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
   },
   checkbox: {
-    backgroundColor: 'transparent',
-    borderWidth: 0,
-  },
-  checkedCheckbox: {
-    borderColor: '#4CAF50',
-    backgroundColor: '#E8F5E9',
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 10,
   },
   checkboxText: {
-    color: '#333',
+    padding: 5,
+    fontSize: 14,
+    fontFamily: 'regular',
+    color: '#4CAF50',
   },
   checkedText: {
     color: '#4CAF50',
@@ -296,7 +338,7 @@ const styles = StyleSheet.create({
   },
   modalButtonText: {
     fontSize: 14,
-    fontWeight: 'bold',
+    fontFamily: 'medium',
   },
   cancelText: {
     color: '#d9534f',

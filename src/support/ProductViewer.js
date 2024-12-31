@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, Dimensions, ActivityIndicator, TextInput } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useVideoPlayer, VideoView } from 'expo-video'; 
@@ -7,7 +7,7 @@ import Carousel from 'react-native-reanimated-carousel';
 import { useFocusEffect } from '@react-navigation/native';
 import { useQuery } from '@tanstack/react-query';
 import { useDispatch } from 'react-redux';
-import { fetchUserFavorites } from '../utils/api';
+import { fetchUserFavorites, fetchFarmers } from '../utils/api';
 import { supabase } from '../backend/supabaseClient';
 import { useAuth } from '../hooks/useAuth';
 import { addFavorite } from '../store/favoritesSlice'; 
@@ -17,17 +17,30 @@ import CustomAlert from '../support/CustomAlert';
 const { width } = Dimensions.get('window');
 
 const ProductViewer = ({ route, navigation }) => {
-    const { product, isFavorite } = route.params; 
+    const { product, isFavorite, id_user } = route.params;
     const { user } = useAuth();
     const dispatch = useDispatch();
-    const [originalImageUri, setOriginalImageUri] = useState(null);
+    const [tag, setTag] = useState('');
+    const [rating, setRating] = useState(0);
+    const [description, setDescription] = useState('');
     const [currentIndex, setCurrentIndex] = useState(0); 
     const [isMarked, setIsMarked] = useState(isFavorite);
     const [alertVisible, setAlertVisible] = useState(false);
     const [alertMessage, setAlertMessage] = useState('');
+    const [alertTitle, setAlertTitle] = useState(''); 
     const [isLocked, setIsLocked] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
+    const [isLoadingFeedback, setIsLoadingFeedback] = useState(false);
+    const [showOrderInput, setShowOrderInput] = useState(false); 
+    const [quantity, setQuantity] = useState('');
 
     useRealTimeUpdates(user?.id_user);
+
+    const { data: farmersData = [], isLoading: loadingFarmers } = useQuery({
+        queryKey: ['farmers', id_user],
+        queryFn: () => fetchFarmers(id_user),
+        staleTime: 1000 * 60 * 5,
+    });
 
     const { data: favoriteProducts } = useQuery({
         queryKey: ['favorites', user?.id_user], 
@@ -42,6 +55,12 @@ const ProductViewer = ({ route, navigation }) => {
             setIsMarked(isFavorite); 
         }
     }, [favoriteProducts, product.id]);
+
+    const showAlert = (title, message) => {
+        setAlertTitle(title);
+        setAlertMessage(message);
+        setAlertVisible(true);
+    };
 
     const formatPrice = (price) => {
         return new Intl.NumberFormat('en-PH', {
@@ -81,10 +100,8 @@ const ProductViewer = ({ route, navigation }) => {
                 if (error) throw new Error(error.message);
 
                 dispatch(addFavorite({ id: product.id })); 
-                setAlertMessage('Added to favorites successfully!');
+                showAlert("Favorite Status", "Added to favorites successfully!");
             }
-
-            setAlertVisible(true);
         } catch (err) {
             console.error('Error updating favorites:', err.message);
             setIsMarked(!isMarked);
@@ -120,6 +137,128 @@ const ProductViewer = ({ route, navigation }) => {
 
     const hasAdditionalDetails = additionalDetails.some(detail => detail.value);
 
+    const DEFAULT_PROFILE_IMAGE = require('../../assets/main/default_profile_photo.png');
+
+    const formatPhoneNumberForDisplay = (phoneNumber) => {
+        if (phoneNumber && phoneNumber.length === 10 && phoneNumber[0] !== '0') {
+            return '0' + phoneNumber;
+        }
+        return phoneNumber;
+    };
+
+    const renderStars = () => {
+        return [1, 2, 3, 4, 5].map((star) => (
+            <TouchableOpacity
+                key={star}
+                onPress={() => setRating(star)}
+                style={styles.starContainer}
+            >
+                <Text
+                    style={[
+                        styles.star,
+                        { color: star <= rating ? "#FFD700" : "#666", borderColor: "#555" },
+                    ]}
+                >
+                ★
+                </Text>
+            </TouchableOpacity>
+        ));
+    };
+
+    const handleFeedbackSubmit = async (farmerId) => {
+        if (!user || !user.id_user) {
+            console.error('User is not authenticated or user ID is missing');
+            return;
+        }
+
+        if (user.role !== 'consumer') {
+            showAlert("Feedback Submission Error", "Only consumers can submit feedback.");
+            return;
+        }
+    
+        if (rating === 0) {
+            showAlert("Feedback Submission Error", "Please provide a rating.");
+            return;
+        }
+
+        if (!tag || tag.trim() === '') {
+            showAlert("Feedback Submission Error", "Please provide a tag.");
+            return;
+        }
+    
+        if (!description || description.trim() === '') {
+            showAlert("Feedback Submission Error", "Please provide a description.");
+            return;
+        }
+
+        setIsLoadingFeedback(true);
+    
+        try {
+            const { error } = await supabase
+                .from('feedback')
+                .insert([{
+                    consumer_id: user.id_user, 
+                    farmer_id: farmerId, 
+                    rating: rating,
+                    tags: tag, 
+                    description: description,
+                }]);
+    
+            if (error) throw new Error(error.message);
+
+            setRating(0);
+            setDescription('');
+            setTag('');
+            showAlert("Feedback Submission", "Feedback submitted successfully!");
+        } catch (err) {
+            console.error('Error submitting feedback:', err.message);
+            showAlert("Feedback Submission Error", "Failed to submit feedback. Please try again.");
+        } finally {
+            setIsLoadingFeedback(false);
+        }
+    };
+
+    const handleOrderNow = () => {
+        setShowOrderInput(true);
+    };
+
+    const handleProceed = () => {
+        if (!quantity || quantity.trim() === '') {
+            showAlert("Order Error", "Please enter a valid quantity.");
+            return;
+        }
+
+        const orderId = Math.floor(Math.random() * 100000).toString();
+    
+        const orderData = {
+            orderId,
+            product: product.name, 
+            productLocation: product.location,
+            price: formatPrice(product.price), 
+            quantity: parseFloat(quantity),
+            totalPrice: formatPrice(parseFloat(quantity) * parseFloat(product.price)), 
+            farmerName: farmersData[0].first_name + farmersData[0].last_name,
+            farmerContact: formatPhoneNumberForDisplay(farmersData[0].phone_number),
+            farmer_id: farmersData[0].id_user,
+        };
+
+        console.log('Order Data:', orderData);
+    
+        navigation.navigate('ConsumerOrder', { orderData });
+    };
+
+    const handleCancelOrder = () => {
+        setShowOrderInput(false); 
+        setQuantity(''); 
+    };
+
+    const formatUnitPrice = (unitPrice) => {
+        const priceMatch = unitPrice.match(/(\d+(\.\d+)?)/); 
+        const unitDescription = unitPrice.replace(priceMatch[0], '').trim(); 
+        const formattedPrice = priceMatch ? formatPrice(priceMatch[0]) : 'P 0.00'; 
+        return `${formattedPrice} ${unitDescription}`; 
+    };
+
     return (
         <View style={styles.container}>
 
@@ -150,7 +289,7 @@ const ProductViewer = ({ route, navigation }) => {
                                 />
                                 <TouchableOpacity 
                                     style={styles.originalSizeButton} 
-                                    onPress={() => setOriginalImageUri(mediaItems[0].uri)}
+                                    onPress={() => navigation.navigate('ImageViewer', { uri: mediaItems[0].uri })}
                                 >
                                     <Ionicons name="eye" size={24} color="white" />
                                 </TouchableOpacity>
@@ -177,7 +316,7 @@ const ProductViewer = ({ route, navigation }) => {
                                                 />
                                                 <TouchableOpacity 
                                                     style={styles.originalSizeButton} 
-                                                    onPress={() => setOriginalImageUri(item.uri)}
+                                                    onPress={() => navigation.navigate('ImageViewer', { uri: item.uri })}
                                                 >
                                                     <Ionicons name="eye" size={24} color="white" />
                                                 </TouchableOpacity>
@@ -206,95 +345,204 @@ const ProductViewer = ({ route, navigation }) => {
                         <Text>No media available</Text>
                     </View>
                 )}
-                
-                <View style={styles.infoContainer}>
-                    <Text style={styles.productName}>{product.name}</Text>
-                    <Text style={styles.productPrice}>{formatPrice(product.price)}</Text>
-                    <View style={styles.line} />
+                <View style={styles.mainContainer}>
+                    <View style={styles.infoContainer}>
 
-                    <Text style={styles.productCategory}>Category: {product.category}</Text>
-                    <Text style={styles.productAvailable}>Available: {product.available}</Text>
-                    <View style={styles.line} />
-
-                    <View style={styles.locationContainer}>
-                        <MaterialCommunityIcons 
-                            name="map-marker" 
-                            size={20} 
-                            color="#555" 
-                            style={styles.mapMarker}
-                        />
-                        <Text style={styles.productLocation}>{product.location}</Text>
-                    </View>
-                    
-                    <Text style={styles.productDescription}>{product.description}</Text>
-                    <View style={styles.line} />
-
-                    {hasAdditionalDetails && (
-                        <Text style={styles.additionalDetailText}>Additional Details:</Text>
-                    )}
-
-                    {additionalDetails.every(detail => !detail.value) && (
-                        <Text style={styles.noAdditionalDetailText}>No additional details available</Text>
-                    )}
-
-                    {additionalDetails.every(detail => !detail.value) && (
-                        <View style={styles.line} />
-                    )}
-
-                    {additionalDetails.map((detail, index) => {
-                        if (detail.value) {
-                            return (
-                                <View key={index} style={styles.additionalDetailContainer}>
-                                    <Text style={styles.additionalDetailLabel}>
-                                       {`${detail.label}: `}
-                                    </Text>
-                                    <Text style={styles.additionalDetailValue}>
-                                        {detail.value}
-                                    </Text>
-                                </View>
-                            );
-                        }
-                        return null; 
-                    })}
-
-                    {hasAdditionalDetails && (
-                        <View style={styles.line} />
-                    )}
-
-                    <View style={styles.farmerInfoContainer}>
-                        <Text style={styles.farmerTitle}>Farmer Seller</Text>
-
-                        <View style={styles.farmerInfo}>
-                            <View style={styles.farmerWrapper}>
-                                <Text>here farmer profile</Text>
-
-                            </View>
-
-                                <Text style={styles.farmerFullname}>here farmer's full name</Text>
-                                <Text style={styles.farmerContactNum}>here farmer's contact number</Text>
+                        <View style={styles.locationContainer}>
+                            <MaterialCommunityIcons 
+                                name="map-marker" 
+                                size={15} 
+                                color="blue" 
+                                style={styles.mapMarker}
+                            />
+                            <Text style={styles.productLocation}>{product.location}</Text>
                         </View>
 
+                        <Text style={styles.productName}>{product.name}</Text>
+                        <Text style={styles.productPrice}>{formatPrice(product.price)}</Text>
+                        <View style={styles.line} />
+
+                        <Text style={styles.productCategory}>Category: {product.category}</Text>
+                        <Text style={styles.productAvailable}>Available: {product.available}</Text>
+                        <View style={styles.line} />
+                        
+                        <Text style={styles.productDescription}>{product.description}</Text>
+                        <View style={styles.line} />
+
+                        {hasAdditionalDetails && (
+                            <Text style={styles.additionalDetailText}>Additional Details:</Text>
+                        )}
+
+                        {additionalDetails.every(detail => !detail.value) && (
+                            <Text style={styles.noAdditionalDetailText}>No additional details available</Text>
+                        )}
+
+                        {additionalDetails.map((detail, index) => {
+                            if (detail.value) {
+                                return (
+                                    <View key={index} style={styles.additionalDetailContainer}>
+                                        <Text style={styles.additionalDetailLabel}>
+                                        {`${detail.label}: `}
+                                        </Text>
+                                        <Text style={styles.additionalDetailValue}>
+                                            {detail.value}
+                                        </Text>
+                                    </View>
+                                );
+                            }
+                            return null; 
+                        })}
+
                     </View>
+                    
+                    {farmersData.length > 0 && (
+                        <View style={styles.farmerInfoContainer}>
+                            <Text style={styles.farmerTitle}>Farmer Seller</Text>
+                            {loadingFarmers ? (
+                                <ActivityIndicator size={25} color="white" />
+                            ) : (
+                                farmersData.map(farmer => (
+                                    <View key={farmer.id_user} style={styles.farmerInfo}>
+                                        <Image
+                                            source={farmer?.profile_pic ? { uri: farmer.profile_pic } : DEFAULT_PROFILE_IMAGE}
+                                            style={styles.profileImage}
+                                            resizeMode="cover" 
+                                        />
+                                        <View style={styles.nameContainer}>
+                                            <Text style={styles.name}>
+                                                {`${(farmer.first_name || '').trim()} ${(farmer.middle_name || '').trim()} ${(farmer.last_name || '').trim()}${farmer.suffix ? `, ${farmer.suffix.trim()}` : ''}`}
+                                            </Text>
+
+                                            <Text style={styles.farmerContactNumText}>
+                                                {formatPhoneNumberForDisplay(farmer.phone_number) || 'No contact number available'}
+                                            </Text>
+                                        </View>
+                                    </View>
+                                ))
+                            )}
+
+                            <View style={styles.wrapContainer}>
+                                <TouchableOpacity style={styles.orderButton} onPress={showOrderInput ? handleCancelOrder : handleOrderNow}>
+                                    {isLoading ? (
+                                        <ActivityIndicator size={24} color="white" />
+                                    ) : (
+                                        <Text style={styles.orderText}>{showOrderInput ? 'Cancel Order' : 'Order Now'}</Text>
+                                    )}
+                                </TouchableOpacity>
+                            </View>
+
+                            {showOrderInput && (
+                                <View style={styles.orderInputContainer}>
+
+                                    {(() => {
+                                        const availableMatch = product.available.match(/(\d+(\.\d+)?)/);
+                                        const availableQuantity = availableMatch ? parseFloat(availableMatch[1]) : 0; 
+                                        const adjustedAvailable = quantity ? (availableQuantity - parseFloat(quantity)).toFixed(2) : availableQuantity.toFixed(2);
+                                        const displayAvailable = adjustedAvailable < 0 ? '0.00' : adjustedAvailable; 
+
+                                        return (
+                                            <Text style={styles.orderInputLabel}>
+                                                Available: {displayAvailable} kg
+                                            </Text>
+                                        );
+                                    })()}
+
+                                    <Text style={styles.orderInputLabel}>Unit Price: {formatUnitPrice(product.unit_price)}</Text>
+                                    <Text style={styles.orderInputLabel}>
+                                        Total: {formatPrice(quantity ? (parseFloat(quantity) * parseFloat(product.unit_price)).toFixed(2) : '0.00')}
+                                    </Text>
+                                    <Text style={styles.orderInputLabel}>Enter Quantity:</Text>
+                                    <TextInput
+                                        style={styles.input}
+                                        placeholder="Add Quantity"
+                                        value={quantity}
+                                        onChangeText={text => {
+                                            const numericValue = text.replace(/[^0-9.]/g, '');
+                                            const parsedValue = parseFloat(numericValue);
+
+                                            const availableMatch = product.available.match(/(\d+(\.\d+)?)/);
+                                            const availableQuantity = availableMatch ? parseFloat(availableMatch[1]) : 0;
+
+                                            if (parsedValue > availableQuantity) {
+                                                setQuantity(availableQuantity.toFixed(2)); 
+                                            } else {
+                                                setQuantity(numericValue); 
+                                            }
+                                        }}
+                                        keyboardType="numeric"
+                                    />
+                                    <View style={{ borderBottomWidth: 1, borderColor: '#ddd' }} />
+
+                                    <View style={styles.wrapContainer}>
+                                        <TouchableOpacity style={styles.proceedButton} onPress={handleProceed}>
+                                            {isLoading ? (
+                                                <ActivityIndicator size={24} color="white" />
+                                            ) : (
+                                                <Text style={styles.proceedButtonText}>Proceed</Text>
+                                            )}
+                                        </TouchableOpacity>
+                                    </View>
+                                </View>
+                            )}
+
+                        </View>
+                    )}
+
+                    {farmersData.length > 0 && (
+                        <View style={styles.feedbackContainer}>
+                            {farmersData.map(farmer => (
+                                <View key={farmer.id_user} style={styles.feedbackWrapper}>
+                                    <Text style={styles.farmerTitle}>Feedback for {farmer.first_name}</Text>
+
+                                    <View style={styles.ratingContainer}>
+                                        <View style={styles.horizontalStars}>{renderStars()}</View>
+                                    </View>
+                                    
+                                    <View style={styles.inputContainer}>
+                                        <Text style={styles.inputText}>Share your tags that describe your experience.</Text>
+                                        <Text style={styles.note}>Note: Tags are limited to 5 words.</Text>
+                                        <TextInput
+                                            style={styles.inputTag}
+                                            placeholder='Add Tag (e.g., Easy to Negotiate, Low Price, etc.)'
+                                            value={tag}
+                                            onChangeText={setTag}
+                                        />
+                                        <View style={{borderBottomWidth: 1, borderColor: '#ddd' }}/>
+                                        <Text style={styles.inputText}>Share your experience.</Text>
+                                        <TextInput
+                                            style={styles.input}
+                                            placeholder='Add Description'
+                                            value={description}
+                                            onChangeText={setDescription}
+                                            multiline
+                                        />
+                                        <View style={{borderBottomWidth: 1, borderColor: '#ddd' }}/>
+                                    </View>
+                                    
+                                    <View style={styles.wrapContainer}>
+                                        <TouchableOpacity 
+                                            style={styles.orderButton} 
+                                            onPress={() => handleFeedbackSubmit(farmer.id_user)} 
+                                        >
+                                            {isLoadingFeedback ? (
+                                                <ActivityIndicator size={24} color="white" />
+                                            ) : (
+                                                <Text style={styles.orderText}>Give Feedback</Text>
+                                            )}
+                                        </TouchableOpacity>
+                                    </View>
+                                </View>
+                            ))}
+                        </View>
+                    )}
                 </View>
             </ScrollView>
-
-            {originalImageUri && (
-                <View style={styles.fullscreenImageContainer}>
-                    <TouchableOpacity style={styles.closeButton} onPress={() => setOriginalImageUri(null)}>
-                        <Ionicons name="close" size={35} color="green" />
-                    </TouchableOpacity>
-                    <Image
-                        source={{ uri: originalImageUri }}
-                        style={styles.fullscreenImage}
-                        resizeMode="contain"
-                    />
-                </View>
-            )}
+            
             <CustomAlert 
                 visible={alertVisible} 
-                title="Favorite Status" 
+                title={alertTitle} 
                 message={alertMessage} 
-                onClose={() => setAlertVisible(false)}
+                onClose={() => setAlertVisible(false)} 
             />
         </View>
     );
@@ -316,7 +564,11 @@ const VideoPlayer = ({ uri }) => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#fff',
+        backgroundColor: '#f5f5f5',
+    },
+    mainContainer: {
+        flex: 1,
+        padding: 20,
     },
     scrollContainer: {
         paddingBottom: 20, 
@@ -344,39 +596,17 @@ const styles = StyleSheet.create({
         borderRadius: 20,
         padding: 5,
     },
-    fullscreenImageContainer: {
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.8)',
-        justifyContent: 'center',
-        alignItems: 'center',
-        zIndex: 2,
-    },
-    closeButton: {
-        zIndex: 5,
-        position: 'absolute',
-        top: 40,
-        right: 40,
-    },
-    fullscreenImage: {
-        width: '100%',
-        height: '100%',
-    },
     productImage: {
         width: '100%',
-        height: 450, 
+        height: 300, 
         borderWidth: 1,
         borderColor: '#ddd',
         marginTop: 60, 
     },
     productVideo: {
         width: '100%',
-        height: 450, 
-        borderWidth: 1,
-        borderColor: '#ddd',
+        height: 300, 
+        backgroundColor: '#666',
         marginTop: 60 
     },
     carouselItem: {
@@ -411,7 +641,7 @@ const styles = StyleSheet.create({
     locationContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginTop: 10,
+        marginBottom: 20,
         position: 'relative',
     },
     mapMarker: {
@@ -423,13 +653,13 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontFamily: 'regular',
         color: 'blue',
-        paddingLeft: 24,
+        paddingLeft: 20,
         marginTop: 0,
     },
     productDescription: {
         fontSize: 16,
         color: '#333',
-        marginTop: 30,
+        marginTop: 10,
         marginBottom: 30,
     },
     additionalDetailContainer: {
@@ -472,6 +702,13 @@ const styles = StyleSheet.create({
     },
     infoContainer: {
         padding: 20, 
+        borderRadius: 10,
+        backgroundColor: '#fff',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
     },
     noMediaContainer: {
         justifyContent: 'center',
@@ -502,6 +739,160 @@ const styles = StyleSheet.create({
     },
     controlsContainer: {
         padding: 10,
+    },
+    farmerInfoContainer: {
+        marginTop: 10,
+        padding: 20,
+        justifyContent: 'center',
+        borderRadius: 10,
+        backgroundColor: '#fff',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
+    },
+    farmerTitle: {
+        fontSize: 14,
+        fontFamily: "medium",
+    },
+    farmerInfo: {
+        flexDirection: "row",
+        alignItems: "center",
+        margin: 10, 
+    },
+    farmerWrapper: {
+        flexDirection: 'row',
+    },
+    profileImage: {
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        borderWidth: 2,
+        borderColor: "#34A853",
+        backgroundColor: '#ddd',
+        marginRight: 15,
+    },
+    nameContainer: {
+        flex: 1,
+        flexWrap: 'wrap',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    name: {
+        textAlign: 'center',
+        fontSize: 16,
+        fontFamily: "regular",
+    },
+    farmerContactNumText: {
+        fontSize: 14,
+        fontFamily: "regular",
+        textDecorationLine: 'underline', 
+    },
+    wrapContainer: {
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    orderButton: {
+        backgroundColor: '#4CAF50',
+        width: '48%',
+        padding: 5,
+        borderRadius: 20,
+        marginTop: 20,
+    },
+    orderText:  {
+        textAlign: 'center',
+        fontFamily: 'regular',
+        fontSize: 14,
+        color: 'white',
+    },
+    feedbackContainer: {
+        marginTop: 10,
+        padding: 10,
+        borderRadius: 10,
+        backgroundColor: '#fff',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
+    },
+    feedbackWrapper: {
+        padding: 10,
+    },
+    inputContainer: {
+        position: 'relative',
+    },
+    input: {
+        borderRadius: 8,
+        fontSize: 14,
+        fontFamily: 'regular',
+        color: '#444',
+    },
+    inputTag: {
+        borderRadius: 8,
+        fontSize: 12,
+        fontFamily: 'regular',
+        color: '#444',
+    },
+    note: { 
+        fontSize: 10, 
+        fontFamily: 'regular',
+        color: '#888', 
+    },
+    inputText: {
+        marginTop: 10,
+        fontSize: 12,
+        fontFamily: 'regular',
+        color: '#000',
+    },
+    ratingContainer: {
+        marginTop: 20,
+        alignItems: 'center',
+    },
+    horizontalStars: {
+        flexDirection: "row",
+        padding: 20,
+    },
+    starContainer: {
+        marginHorizontal: 5,
+    },
+    star: {
+        fontSize: 20,
+        borderWidth: 1,
+        borderRadius: 5,
+        paddingHorizontal: 5,
+    },
+    orderInputContainer: {
+        marginTop: 20,
+        padding: 10,
+        backgroundColor: '#f9f9f9',
+        borderRadius: 10,
+    },
+    orderInputLabel: {
+        fontSize: 14,
+        fontFamily: 'regular',
+        marginBottom: 5,
+    },
+    orderInput: {
+        borderWidth: 1,
+        borderColor: '#ddd',
+        borderRadius: 5,
+        padding: 10,
+        marginBottom: 10,
+    },
+    proceedButton: {
+        marginTop: 20,
+        backgroundColor: '#4CAF50',
+        width: '80%',
+        padding: 8,
+        borderRadius: 20,
+    },
+    proceedButtonText: {
+        color: 'white',
+        fontSize: 14,
+        fontFamily: 'regular',
+        textAlign: 'center',
     },
 });
 

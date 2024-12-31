@@ -322,7 +322,7 @@ const HomeScreen = () => {
           </Text>
         </View>
 
-        <TouchableOpacity style={styles.helpContainer} onPress={handleNeedHelp}>
+        <TouchableOpacity style={styles.helpContainer} onPress={() => navigation.navigate('Faqs')}>
           <Icon name="account-group" size={30} color="green" />
           <Text style={styles.helpText}>Need Help?</Text>
         </TouchableOpacity>

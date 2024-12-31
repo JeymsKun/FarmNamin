@@ -59,7 +59,6 @@ const EditProfileScreen = () => {
       setTimeout(() => {
         navigation.navigate('LogIn', { role: user?.role});
       }, 3000);
-
     }
   };
 
@@ -85,7 +84,7 @@ const EditProfileScreen = () => {
 
       <View style={styles.mainSettingsContainer}>
 
-        <TouchableOpacity style={styles.wrapIcons} onPress={() => navigation.navigate('EditProfile')}>
+        <TouchableOpacity style={styles.wrapIcons} onPress={() => navigation.navigate('EditConsumerProfile')}>
           <Image 
             source={require('../../assets/icons/edit_profile.png')} 
             style={styles.icon}
@@ -93,20 +92,12 @@ const EditProfileScreen = () => {
           <Text style={styles.allText}>Edit Profile</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.wrapIcons} onPress={() => navigation.navigate('Verification')}>
+        <TouchableOpacity style={styles.wrapIcons} onPress={() => navigation.navigate('VerificationConsumer')}>
           <Image 
             source={require('../../assets/icons/verification.png')} 
             style={styles.icon}
           />
           <Text style={styles.allText}>Verification</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.wrapIcons} onPress={() => navigation.navigate('AgentAssist')}>
-          <Image 
-            source={require('../../assets/icons/agent.png')} 
-            style={styles.icon}
-          />
-          <Text style={styles.allText}>Agent Assist Program</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.wrapIcons} onPress={handleLogout}>

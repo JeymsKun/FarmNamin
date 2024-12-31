@@ -336,6 +336,28 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 5,
     paddingHorizontal: 2,
+  },starHighlight: {
+    color: "#FFD700",
+  },
+  ratingContainer: {
+    marginVertical: 10,
+  },
+  ratingLabel: {
+    fontSize: 14,
+    marginBottom: 5,
+    fontWeight: "bold",
+  },
+  horizontalStars: {
+    flexDirection: "row",
+  },
+  starContainer: {
+    marginHorizontal: 5,
+  },
+  star: {
+    fontSize: 24,
+    borderWidth: 1,
+    borderRadius: 5,
+    paddingHorizontal: 2,
   },
   addRatingButton: {
     height: 40,

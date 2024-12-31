@@ -31,7 +31,96 @@ export const fetchUserBookmarkedProducts = async (userId) => {
   }
 
   console.log('Fetched favorite products:', products);
-  return products; 
+  return products || []; 
+};
+
+export const fetchNewOrders = async (userId) => {
+
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0); 
+
+  const { data, error } = await supabase
+    .from('orders')
+    .select('*') 
+    .eq('farmer_id', userId)
+    .gt('created_at', startOfToday.toISOString());
+
+  console.log('Check orders:', data);
+
+  if (error) {
+    console.error('Error fetching new orders:', error.message); 
+    return []; 
+  }
+
+  return data || [];
+};
+
+export const fetchFeedbacks = async (userId) => {
+  if (!userId) {
+    throw new Error('User ID is required to fetch feedbacks');
+  }
+  const { data, error } = await supabase
+    .from('feedback')
+    .select(` id, farmer_id, consumer_id, rating, tags, description, created_at, consumer:users!feedback_consumer_id_fkey (*) `)
+    .eq('farmer_id', userId);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return data;
+};
+
+export const fetchConsumersWithOrders = async (userId) => {
+  if (!userId) {
+      throw new Error('User ID is undefined or null.');
+  }
+
+  const { data: orders, error: ordersError } = await supabase
+      .from('orders')
+      .select('*')
+      .eq('farmer_id', userId);
+
+  if (ordersError) {
+      console.error('Error fetching orders:', ordersError.message);
+      throw new Error(ordersError.message);
+  }
+
+  const { data: consumers, error: consumersError } = await supabase
+      .from('users')
+      .select('id_user, first_name, last_name, middle_name, suffix, phone_number, role')
+      .eq('role', 'consumer'); 
+
+  if (consumersError) {
+      console.error('Error fetching consumers:', consumersError.message);
+      throw new Error(consumersError.message);
+  }
+
+  const combinedData = orders.map(order => {
+      const consumer = consumers.find(consumer => consumer.id_user === order.consumer_id);
+      return {
+          ...order,
+          consumer: consumer ? consumer : null,
+      };
+  });
+
+  return combinedData;
+};
+
+
+export const fetchFarmers = async (userId) => {
+  const { data, error } = await supabase
+    .from('users')
+    .select('*')
+    .eq('role', 'farmer')
+    .eq('id_user', userId); 
+
+  if (error) {
+    console.error('Error fetching farmers:', error.message);
+    throw new Error(error.message);
+  }
+
+  return data || [];
 };
 
 export const fetchUserFavorites = async (userId) => {
@@ -41,7 +130,7 @@ export const fetchUserFavorites = async (userId) => {
     .eq('id_user', userId); 
 
   if (error) throw new Error(error.message);
-  return data; 
+  return data || []; 
 };
 
 export const fetchAllProducts = async () => {
@@ -58,7 +147,7 @@ export const fetchAllProducts = async () => {
   }
 
   console.log('Fetched products here api:', data); 
-  return data; 
+  return data || []; 
 };
 
 export const fetchAllPosts = async () => {
@@ -73,7 +162,7 @@ export const fetchAllPosts = async () => {
     ...post,
     first_name: post.users?.first_name || "Anonymous",
     phone_number: post.users?.phone_number || "------",
-  }));
+  })) || [];
 };
 
 export const fetchPosts = async (userId) => {
@@ -83,7 +172,7 @@ export const fetchPosts = async (userId) => {
     .eq('id_user', userId);
 
   if (error) throw new Error(error.message);
-  return data;
+  return data || [];
 };
 
 export const fetchProducts = async (userId) => {
@@ -93,17 +182,17 @@ export const fetchProducts = async (userId) => {
     .eq('id_user', userId);
 
   if (error) throw new Error(error.message);
-  return data;
+  return data || [];
 };
 
 export const fetchProfileData = async (userId) => {
   const { data, error } = await supabase
     .from('users')
-    .select('id_user, first_name, last_name, middle_name, suffix, birth_month, birth_day, birth_year, bio, experience, profile_pic, cover_photo, phone_number')
+    .select('*')
     .eq('id_user', userId);
   
   if (error) throw new Error(error.message);
-  return data[0];
+  return data[0] || null;
 };
 
 export const fetchUserProducts = async (userId) => {
@@ -113,5 +202,5 @@ export const fetchUserProducts = async (userId) => {
     .eq('id_user', userId);
   
   if (error) throw new Error(error.message);
-  return data;
+  return data || [];
 };

@@ -1,56 +1,52 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  Button,
-  StyleSheet,
-  Alert,
-  Image,
-  TouchableOpacity,
-  Modal,
-  ScrollView,
-} from 'react-native';
+import { View, Text, Dimensions, StyleSheet, Image, TouchableOpacity, Modal, ScrollView, Alert } from 'react-native';
+import CustomAlert from '../support/CustomAlert';
+import { useAuth } from '../hooks/useAuth';
 import { Ionicons } from '@expo/vector-icons';
+import { supabase } from '../backend/supabaseClient';
+
+const { width, height } = Dimensions.get('window');
 
 import headerImage from '../../assets/images/header-farmer.jpg';
 
-const FarmerOrderPage = ({ navigation }) => {
+const FarmerOrderConfirmation = ({ route, navigation }) => {
+  const { order } = route.params;
   const [modalVisible, setModalVisible] = useState(false);
   const [isConfirmed, setIsConfirmed] = useState(false);
-
-  const order = {
-    orderId: 12345,
-    product: 'Dako nga Talong',
-    quantity: 2,
-    totalPrice: '₱30.00',
-    Price: '₱15.00',
-    consumerName: 'James David Maserin',
-    consumerContact: '09363932622',
-  };
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertMessage, setAlertMessage] = useState('');
+  const [alertTitle, setAlertTitle] = useState('');
 
   const handleOrderAction = (action) => {
     if (action === 'confirm') {
       setIsConfirmed(true);
-      Alert.alert('Order Confirmed', 'You have successfully confirmed the order.');
+      showAlert('Order Confirmed', 'You have successfully confirmed the order.');
     } else if (action === 'cancel') {
-      Alert.alert('Order Canceled', 'You have canceled the order.');
+      showAlert('Order Canceled', 'You have canceled the order.');
     }
     setModalVisible(false);
   };
 
-  return (
-    <ScrollView contentContainerStyle={styles.scrollContainer}>
-      <View style={styles.container}>
-   
-        <View style={styles.headerContainer}>
-          <TouchableOpacity onPress={() => navigation.goBack()}>
-            <Ionicons name="arrow-back" size={24} color="#4CAF50" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Customer's Order</Text>
-          <View style={{ width: 24 }} /> 
-        </View>
+  const showAlert = (title, message) => {
+    setAlertTitle(title);
+    setAlertMessage(message);
+    setAlertVisible(true);
+  };
 
-        {/* Simplified Email-like Header Message */}
+  return (
+    <ScrollView 
+      contentContainerStyle={styles.container} 
+      showsVerticalScrollIndicator={false} 
+      keyboardShouldPersistTaps="handled"
+    >
+      <View style={styles.header}>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+            <Ionicons name="arrow-back" size={35} color="#34A853" />
+        </TouchableOpacity>
+
+        <Text style={styles.title}>Consumer's Order</Text>
+      </View>
+
         <View style={styles.notificationHeader}>
           <Text style={styles.notificationText}>Good day! You have a new order from your product.</Text>
           <Text style={styles.contactText}>
@@ -65,36 +61,42 @@ const FarmerOrderPage = ({ navigation }) => {
 
         <View style={styles.orderDetailsContainer}>
           <Text style={styles.orderText}>
-            <Text style={styles.boldText}>Order ID:</Text> {order.orderId}
-          </Text>
-          <Image
-            source={{ uri: 'https://via.placeholder.com/150' }}
-            style={styles.productImage}
-          />
-          <Text style={styles.orderText}>
-            <Text style={styles.boldText}>Product Ordered:</Text> {order.product}
+            <Text style={styles.boldText}>Order ID:</Text> {order.order_id}
           </Text>
           <Text style={styles.orderText}>
-            <Text style={styles.boldText}>Price:</Text> {order.Price}
+            <Text style={styles.boldText}>Product Ordered:</Text> {order.product_name}
+          </Text>
+          <Text style={styles.orderText}>
+            <Text style={styles.boldText}>Price:</Text> {order.price}
           </Text>
           <Text style={styles.orderText}>
             <Text style={styles.boldText}>Quantity:</Text> {order.quantity}
           </Text>
           <Text style={styles.orderText}>
-            <Text style={styles.boldText}>Total Price:</Text> {order.totalPrice}
+            <Text style={styles.boldText}>Total Price:</Text> {order.total_price}
           </Text>
         </View>
 
         <View style={styles.consumerDetailsContainer}>
-        <Text style={styles.consumerDetailsTitle}>
-            <Text style={styles.boldText}>Customer's Details</Text> 
+          <Text style={styles.boldText}>Customer's Details</Text> 
+        
+          <Text style={styles.consumerDetails}>
+            <Text style={styles.boldText}>Name: </Text> 
+            {[
+              order.consumer.first_name,
+              order.consumer.middle_name,
+              order.consumer.last_name,
+              order.consumer.suffix
+            ].filter(Boolean).join(' ')}
           </Text>
           <Text style={styles.consumerDetails}>
-            <Text style={styles.boldText}>Name:</Text> {order.consumerName}
+            <Text style={styles.boldText}>Contact:</Text> {order.consumer.phone_number}
           </Text>
-          <Text style={styles.consumerDetails}>
-            <Text style={styles.boldText}>Contact:</Text> {order.consumerContact}
-          </Text>
+          {order.consumer.address && (
+            <Text style={styles.consumerDetails}>
+              <Text style={styles.boldText}>Address:</Text> {order.consumer.address}
+            </Text>
+          )}
         </View>
 
         <TouchableOpacity
@@ -133,48 +135,60 @@ const FarmerOrderPage = ({ navigation }) => {
             </View>
           </View>
         </Modal>
-      </View>
+        
+        <CustomAlert 
+          visible={alertVisible} 
+          title={alertTitle} 
+          message={alertMessage} 
+          onClose={() => setAlertVisible(false)} 
+        />
     </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
-  scrollContainer: {
+  container: {
     flexGrow: 1,
     backgroundColor: '#f5f5f5',
+    padding: 20,
   },
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
-    paddingHorizontal: 15,
-    paddingVertical: 30,
-    paddingBottom: 20,
-  },
-  headerContainer: {
-    flexDirection: 'row',
+  header: {
+    padding: 10,
+    marginBottom: height * 0.02,
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 20,
-    paddingTop: 20,
+    justifyContent: 'center',
+    position: 'relative',
   },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
+  backButton: {
+    position: 'absolute',
+    left: 0,
+  },
+  title: {
+    fontSize: width * 0.045,
+    fontFamily: 'medium',
+    textAlign: 'center',
   },
   headerImage: {
     width: '100%',
-    height: 150,
-    marginBottom: 15,
-    borderRadius: 10,
+    height: 200,
+    marginBottom: 20,
+    marginTop: 10,
     resizeMode: 'cover',
+    borderRadius: 10,
+    backgroundColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   notificationHeader: {
-    marginBottom: 10,
-   
+    marginTop: 10,
+    alignItems: 'center',
   },
   notificationText: {
-    fontSize: 16,
-    fontWeight: 'bold',
+    fontSize: 15,
+    fontFamily: 'bold',
     color: '#333',
     textAlign: 'center',
   },
@@ -182,9 +196,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#555',
     marginTop: 5,
-    fontStyle: 'italic',
+    fontFamily: 'regular',
     textAlign: 'center',
-    marginBottom: 5,
   },
   orderDetailsContainer: {
     backgroundColor: '#ffffff',
@@ -195,15 +208,17 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
-    marginBottom: 5,
+    marginBottom: 20,
   },
   orderText: {
     fontSize: 14,
+    fontFamily: 'regular',
     marginBottom: 5,
     color: '#333',
   },
   boldText: {
-    fontWeight: 'bold',
+    fontSize: 15,
+    fontFamily: 'medium',
     color: '#333',
   },
   productImage: {
@@ -223,28 +238,22 @@ const styles = StyleSheet.create({
     elevation: 3,
     marginBottom: 5,
   },
-  consumerDetailsTitle:{
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 10,
-  },
   consumerDetails: {
     fontSize: 14,
-    marginBottom: 5,
+    fontFamily: 'regular',
     color: '#333',
   },
   actionButton: {
-    backgroundColor: '#28a745',
-    paddingVertical: 10,
-    borderRadius: 5,
+    backgroundColor: '#4CAF50',
+    paddingVertical: 8,
+    borderRadius: 20,
     alignItems: 'center',
-    marginVertical: 15,
+    marginVertical: 20,
   },
   actionButtonText: {
     color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
+    fontSize: 15,
+    fontFamily: 'medium',
   },
   modalOverlay: {
     flex: 1,
@@ -279,7 +288,7 @@ const styles = StyleSheet.create({
   },
   modalButtonText: {
     fontSize: 14,
-    fontWeight: 'bold',
+    fontFamily: 'medium',
   },
   confirmText: {
     color: '#5cb85c',
@@ -289,4 +298,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default FarmerOrderPage;
+export default FarmerOrderConfirmation;

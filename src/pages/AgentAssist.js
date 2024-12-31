@@ -154,25 +154,20 @@ export default function AgentAssist() {
         </TouchableOpacity>
       </View>
 
-      {loading && (
+      {loading ? (
         <View style={styles.loaderContainer}>
           <ActivityIndicator size="large" color="#4CAF50" />
         </View>
-      )}
+      ) : showWebView ? (
+        <WebView
+          ref={webviewRef}
+          originWhitelist={['*']}
+          source={{ html: agentHtml }}
+          style={styles.webView}
+          onShouldStartLoadWithRequest={onShouldStartLoadWithRequest}
+        />
+      ): null}
 
-      <View style={styles.webviewContainer}>
-        {showWebView && (
-          <WebView
-            ref={webviewRef}
-            originWhitelist={['*']}
-            source={{ html: agentHtml }}
-            style={styles.webview}
-            onLoadStart={() => setLoading(true)}
-            onLoadEnd={() => setLoading(false)}
-            onShouldStartLoadWithRequest={onShouldStartLoadWithRequest}
-          />
-        )}
-      </View>
     </SafeAreaView>
   );
 }
@@ -187,19 +182,16 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 30,
-    height: 50,
+    height: 50, 
     backgroundColor: '#fff',
-    zIndex: 1,
-  },
-  webviewContainer: {
-    flex: 1,
-  },
-  webview: {
-    flex: 1,
+    zIndex: 1, 
   },
   loaderContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  webView: {
+    flex: 1,
   },
 });

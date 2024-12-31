@@ -17,6 +17,7 @@ import TermsScreen from '../pages/Terms';
 import AgentAssistScreen from '../pages/AgentAssist';
 import AboutUsScreen from '../pages/AboutUs';
 import WebViewScreen from '../support/WebViewScreen';
+import FaqsScreen from '../pages/Faqs';
 
 const Stack = createStackNavigator();
 
@@ -77,6 +78,7 @@ const AppNav = () => {
         <Stack.Screen name="AgentAssist" component={AgentAssistScreen}/>
         <Stack.Screen name="AboutUs" component={AboutUsScreen}/>
         <Stack.Screen name="WebBrowser" component={WebViewScreen}/>
+        <Stack.Screen name="Faqs" component={FaqsScreen}/>
 
       </Stack.Navigator>
     </NavigationContainer>

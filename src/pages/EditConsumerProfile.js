@@ -279,11 +279,11 @@ const EditProfileScreen = () => {
       </View>
 
       <View style={styles.buttonRow}>
-        <TouchableOpacity style={styles.editButton} onPress={() => navigation.navigate('EditBasicInfo')}>
+        <TouchableOpacity style={styles.editButton} onPress={() => navigation.navigate('EditConsumerBasicInfo')}>
           <Text style={styles.buttonText}>Edit basic info</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.editButton} onPress={() => navigation.navigate('EditAccount')}>
+        <TouchableOpacity style={styles.editButton} onPress={() => navigation.navigate('EditConsumerAccount')}>
           <Text style={styles.buttonText}>Edit account details</Text>
         </TouchableOpacity>
       </View>

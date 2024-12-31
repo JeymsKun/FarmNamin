@@ -460,7 +460,7 @@ export default function Product({ navigation, route }) {
     } else {
         console.warn('Unsupported document type:', item.fileType);
     }
-};
+  };
 
   const handleOpenGallery = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();

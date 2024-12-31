@@ -22,13 +22,24 @@ import AgricultureTipsScreen from '../pages/AgricultureTips';
 import WeatherScreen from '../pages/Weather';
 import MarketPriceScreen from '../pages/MarketPrice';
 import ProductPostScreen from '../pages/ProductPost';
-import ConsumerScreen from '../pages/Consumer';
 import AdditonalDetailsScreen from '../pages/AdditionalDetails';
 import ProductViewerScreen from '../support/ProductViewer';
 import PostDetailScreen from '../support/PostDetail';
-import ConsumerOrderPageScreen from '../pages/ConsumerOrderPage';
+import ConsumerOrderScreen from '../pages/ConsumerOrder';
 import ProfileSettingsScreen from '../pages/ProfileSettings';
 import EditProfileScreen from '../pages/EditProfile';
+import EditBasicInfoScreen from '../pages/EditBasicInfo';
+import EditAccountScreen from '../pages/EditAccount';
+import VerificationScreen from '../pages/Verification';
+import ProfileConsumerSettingsScreen from '../pages/ProfileConsumerSettings';
+import EditConsumerAccountScreen from '../pages/EditConsumerAccount';
+import EditConsumerBasicInfoScreen from '../pages/EditConsumerBasicInfo';
+import EditConsumerProfileScreen from '../pages/EditConsumerProfile';
+import VerificationConsumerScreen from '../pages/VerificationConsumer';
+import ConsumerFeedbackScreen from '../pages/ConsumerFeedback';
+import ConsumerDetailsScreen from '../pages/ConsumerDetails';
+import NotificationFarmerScreen from '../pages/NotificationFarmer';
+import FarmerOrderConfirmationScreen from '../pages/FarmerOrderConfirmation';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -57,7 +68,8 @@ const ProductStack = () => {
             <Stack.Screen name="MarketPrice" component={MarketPriceScreen}/>
             <Stack.Screen name="ProductPost" component={ProductPostScreen}/>
             <Stack.Screen name="AdditionalDetails" component={AdditonalDetailsScreen}/>
-        
+            <Stack.Screen name="NotificationFarmer" component={NotificationFarmerScreen}/>
+            <Stack.Screen name="FarmerOrderConfirmation" component={FarmerOrderConfirmationScreen}/>
         </Stack.Navigator>
     );
 };
@@ -72,6 +84,7 @@ const MarketplaceStack = () => {
         >
             <Stack.Screen name="Marketplace" component={MarketplaceScreen} />
             <Stack.Screen name="ProductViewer" component={ProductViewerScreen}/>
+            <Stack.Screen name="ConsumerOrder" component={ConsumerOrderScreen}/>
         </Stack.Navigator>
     );
 };
@@ -90,7 +103,6 @@ const HomepageStack = () => {
     );
 };
 
-
 const ProfileConsumerStack = () => {
     return (
         <Stack.Navigator
@@ -100,7 +112,11 @@ const ProfileConsumerStack = () => {
             }}
         >
             <Stack.Screen name="ProfileConsumer" component={ProfileConsumerScreen} />
-            <Stack.Screen name="ConsumerOrderPage" component={ConsumerOrderPageScreen}/>
+            <Stack.Screen name="ProfileConsumerSettings" component={ProfileConsumerSettingsScreen}/>
+            <Stack.Screen name="EditConsumerAccount" component={EditConsumerAccountScreen}/>
+            <Stack.Screen name="EditConsumerBasicInfo" component={EditConsumerBasicInfoScreen}/>
+            <Stack.Screen name="EditConsumerProfile" component={EditConsumerProfileScreen}/>
+            <Stack.Screen name="VerificationConsumer" component={VerificationConsumerScreen}/>
         </Stack.Navigator>
     );
 };
@@ -116,6 +132,11 @@ const ProfileFarmerStack = () => {
             <Stack.Screen name="ProfileFarmer" component={ProfileFarmerScreen} />
             <Stack.Screen name="ProfileSettings" component={ProfileSettingsScreen}/>
             <Stack.Screen name="EditProfile" component={EditProfileScreen}/>
+            <Stack.Screen name="EditBasicInfo" component={EditBasicInfoScreen}/>
+            <Stack.Screen name="EditAccount" component={EditAccountScreen}/>
+            <Stack.Screen name="Verification" component={VerificationScreen}/>
+            <Stack.Screen name="ConsumerFeedback" component={ConsumerFeedbackScreen}/>
+            <Stack.Screen name="ConsumerDetails" component={ConsumerDetailsScreen}/>
         </Stack.Navigator>
     );
 };

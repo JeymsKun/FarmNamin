@@ -159,21 +159,15 @@ export default function PrivacyPolicy() {
         <View style={styles.loaderContainer}>
           <ActivityIndicator size="large" color="#4CAF50" />
         </View>
-      ) : null}
-
-      <View style={styles.webviewContainer}>
-        {showWebView && (
-          <WebView
-            ref={webviewRef}
-            originWhitelist={['*']}
-            source={{ html: privacyHtml }}
-            style={styles.webview}
-            onLoadStart={() => setLoading(true)}
-            onLoadEnd={() => setLoading(false)}
-            onShouldStartLoadWithRequest={onShouldStartLoadWithRequest}
+      ) : showWebView ? (
+        <WebView
+          ref={webviewRef}
+          originWhitelist={['*']}
+          source={{ html: privacyHtml }}
+          style={styles.webView}
+          onShouldStartLoadWithRequest={onShouldStartLoadWithRequest}
           />
-        )}
-      </View>
+      ) : null}
     </SafeAreaView>
   );
 }
@@ -188,19 +182,16 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 30,
-    height: 50,
+    height: 50, 
     backgroundColor: '#fff',
-    zIndex: 1,
-  },
-  webviewContainer: {
-    flex: 1,
-  },
-  webview: {
-    flex: 1,
+    zIndex: 1, 
   },
   loaderContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  webView: {
+    flex: 1,
   },
 });

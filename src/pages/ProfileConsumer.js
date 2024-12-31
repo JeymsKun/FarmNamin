@@ -202,46 +202,10 @@ const ProfileScreen = ({ navigation }) => {
     navigation.navigate('ReviewScreen'); 
   };
 
-  const navigateToProductDetails = (productId) => {
-    navigation.navigate('ProductDetailsScreen', { productId });
-  };  
-
-  const handleDotsClick = () => {
-    navigation.navigate('ConsumerOrderPage'); 
-  };
-
-  const renderReviewItem = ({ item }) => (
-    <View style={styles.reviewCard}>
-      <View style={styles.reviewContent}>
-        <View style={styles.ratingContainer}>
-          {Array.from({ length: 10 }, (_, i) => (
-            <Icon
-              key={i}
-              name="star"
-              size={15}
-              color={i < item.rating ? '#FFD700' : '#CCCCCC'} 
-              style={styles.starIcon}
-            />
-          ))}
-        </View>
-        <Text style={styles.reviewText}>
-          {item.text.length > 30 ? `${item.text.substring(0, 30)}...` : item.text}
-        </Text>
-        <View style={styles.tagsContainer}>
-          {item.tags.map((tag, index) => (
-            <View key={index} style={styles.tag}>
-              <Text style={styles.tagText}>{tag}</Text>
-            </View>
-          ))}
-        </View>
-      </View>
-    </View>
-  );
-
   const renderUserPhoto = () => {
     return(
       <View style={styles.imageContainer}>
-        <TouchableOpacity onPress={() => setCoverModalVisible(true)}>
+        <TouchableOpacity onPress={() => navigation.navigate('ImageViewer', { uri: profile.cover_photo })}>
           <ImageBackground 
             source={profile?.cover_photo ? { uri: profile.cover_photo } : DEFAULT_COVER_PHOTO}
             style={styles.coverPhoto} 
@@ -249,20 +213,18 @@ const ProfileScreen = ({ navigation }) => {
           />
         </TouchableOpacity>
 
-        <View style={styles.headerContainer}>
-          <Animated.View style={{ transform: [{ scale: profileScale }] }}>
-            <TouchableOpacity onPress={animateProfile}>
-              <View style={styles.profileImageContainer}>
-                <Image
-                  source={profile?.profile_pic ? { uri: profile.profile_pic } : DEFAULT_PROFILE_IMAGE} 
-                  style={styles.profileImage} 
-                  resizeMode="contain" 
-                />
-              </View>
-            </TouchableOpacity>
-          </Animated.View>
+        <View style={styles.headerContainer}> 
+          <TouchableOpacity onPress={() => navigation.navigate('ImageViewer', { uri: profile.profile_pic })}>
+            <View style={styles.profileImageContainer}>
+              <Image
+                source={profile?.profile_pic ? { uri: profile.profile_pic } : DEFAULT_PROFILE_IMAGE} 
+                style={styles.profileImage} 
+                resizeMode="cover" 
+              />
+            </View>
+          </TouchableOpacity>
 
-          <TouchableOpacity onPress={() => handleDotsClick()}>
+          <TouchableOpacity onPress={() => navigation.navigate('ProfileConsumerSettings')}>
             <Icon name="more-horiz" size={30} color="green" style={styles.dotsIcon} />
           </TouchableOpacity>
 
@@ -331,10 +293,6 @@ const ProfileScreen = ({ navigation }) => {
           {renderUserInfo()}
 
           <View style={styles.reviewContainer}>
-            <TouchableOpacity onPress={navigateToReviewScreen}>
-              <Text style={styles.reviewTitle}>My Feedback</Text>
-            </TouchableOpacity>
-
             <View>
               <Text style={styles.sectionTitle}>My Favorite Products</Text>
             </View>
@@ -557,8 +515,6 @@ const styles = StyleSheet.create({
     position: 'relative',
     width: '100%',
     height: 150,
-    borderWidth: 1,
-    borderColor: '#ddd',
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#f0f0f0', 
@@ -577,25 +533,27 @@ const styles = StyleSheet.create({
     height: 150,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#ddd',
     backgroundColor: '#f0f0f0',
   },
   productCard: {
     width: '48%',
     margin: '1%',
-    padding: 10,
+    borderRadius: 10,
+    backgroundColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   productImage: {
     width: '100%',
     height: 150,
-    borderWidth: 1,
-    borderColor: '#ddd',
+    borderTopLeftRadius: 10, 
+    borderTopRightRadius: 10,
   },
   productInfo: {
     padding: 10,
-    borderWidth: 1,
-    borderColor: '#ddd',
     justifyContent: 'center',
     alignItems: 'center',
   },
