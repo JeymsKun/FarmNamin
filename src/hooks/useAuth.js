@@ -13,7 +13,7 @@ export const useAuth = () => {
 
       if (error) {
         console.error('Session retrieval error:', error.message);
-        setUser(null);
+        throw new Error(error.message);
       } else if (data?.user) {
         const userId = data.user.id;
         const userInfo = await getUserInfoComplete(userId);
@@ -25,14 +25,12 @@ export const useAuth = () => {
           is_info_complete: userInfo.is_info_complete,
         };
 
-        console.log('Fetched user information:', data);
-
         await AsyncStorage.setItem('user', JSON.stringify(authenticatedUser ));
         setUser(authenticatedUser );
       }
     } catch (err) {
       console.error('Session retrieval error:', err.message);
-      setUser(null);
+      throw err;
     }
   };
 
@@ -45,8 +43,8 @@ export const useAuth = () => {
         .single();
 
       if (error) {
-        console.error('User  info retrieval error:', error.message);
-        return { first_name: null, phone_number: null, role: null, is_info_complete: false };
+        console.error('User info retrieval error:', error.message);
+        throw new Error(error.message);
       }
 
       return {
@@ -56,8 +54,8 @@ export const useAuth = () => {
         is_info_complete: data?.is_info_complete || false,
       };
     } catch (err) {
-      console.error('User  info retrieval error:', err.message);
-      return { first_name: null, phone_number: null, role: null, is_info_complete: false };
+      console.error('User info retrieval error:', err.message);
+      throw new Error(error.message);
     }
   };
 
@@ -69,16 +67,13 @@ export const useAuth = () => {
       });
 
       if (error) {
-        console.error('Sign-in error:', error.message);
-        setError('Invalid email or password');
-        return null;
+        return { success: false, message: error.message };  
       }
 
       const userId = data?.user?.id;
       const userInfo = await getUserInfoComplete(userId);
 
       if (!userInfo.role) {
-        setError('No role assigned to user');
         return null;
       }
 
@@ -96,8 +91,7 @@ export const useAuth = () => {
 
       return authenticatedUser ;
     } catch (err) {
-      console.error('Sign-in error:', err.message);
-      setError(err.message);
+      return { success: false, message: 'Unexpected error occurred' };
     }
   };
 
@@ -106,12 +100,14 @@ export const useAuth = () => {
       const { error } = await supabase.auth.signOut();
       if (error) {
         console.error('Sign-out error:', error.message);
+        throw new Error(error.message);
       } else {
         await AsyncStorage.removeItem('user');
         setUser(null);
       }
     } catch (err) {
       console.error('Sign-out error:', err.message);
+      throw err;
     }
   };
 
@@ -126,8 +122,7 @@ export const useAuth = () => {
       is_info_complete: userInfo.is_info_complete,
     };
 
-    console.log('Fetched user info:', authenticatedUser );
-    await AsyncStorage.setItem('user', JSON.stringify(authenticatedUser ));
+    await AsyncStorage.setItem('user', JSON.stringify(authenticatedUser));
     setUser (authenticatedUser );
   };
 
@@ -144,7 +139,7 @@ export const useAuth = () => {
     checkStoredUser ();
 
     const subscription = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('Auth state changed:', event, session);
+
       if (session?.user) {
         fetchUserInfo(session.user.id);
       } else {

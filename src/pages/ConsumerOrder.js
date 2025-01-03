@@ -4,6 +4,7 @@ import CustomAlert from '../support/CustomAlert';
 import { useAuth } from '../hooks/useAuth';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../backend/supabaseClient';
+import { markProductAsDone } from '../utils/api';
 
 const { width, height } = Dimensions.get('window');
 
@@ -22,31 +23,82 @@ const ConsumerOrderPage = ({ route, navigation }) => {
     if (isChecked) {
       setModalVisible(false);
 
+      console.log("Fetching product data for productId:", orderData.productId);
+      const { data: productData, error: fetchError } = await supabase
+        .from('product') 
+        .select('available')
+        .eq('id', orderData.productId) 
+        .single();
+
+      if (fetchError) {
+        showAlert("Fetch Error", "Failed to fetch product data. Please try again.");
+        console.error("Fetch Error:", fetchError);
+        return;
+      }
+
+      const availableString = productData.available; 
+      const availableMatch = availableString.match(/(\d+(\.\d+)?)/); 
+      const currentAvailable = availableMatch ? parseFloat(availableMatch[0]) : 0; 
+
+      console.log("Current available quantity:", currentAvailable);
+      
+      const quantityOrdered = orderData.quantity; 
+      const newAvailable = currentAvailable - quantityOrdered; 
+
+      console.log("Quantity ordered:", quantityOrdered);
+      console.log("New available quantity after order:", newAvailable);
+
       const { data, error } = await supabase
         .from('orders') 
         .insert([
-            {
-              order_id: orderData.orderId,
-              product_name: orderData.product,
-              product_location: orderData.productLocation,
-              price: orderData.price,
-              quantity: orderData.quantity,
-              total_price: orderData.totalPrice,
-              farmer_name: orderData.farmerName,
-              farmer_contact: orderData.farmerContact,
-              farmer_id: orderData.farmer_id,
-              consumer_id: user.id_user,
-              created_at: new Date().toISOString(),
-            }
+          {
+            order_id: orderData.orderId,
+            product_id: orderData.productId,
+            product_name: orderData.product,
+            product_location: orderData.productLocation,
+            price: orderData.price,
+            quantity: orderData.quantity,
+            total_price: orderData.totalPrice,
+            farmer_name: orderData.farmerName,
+            farmer_contact: orderData.farmerContact,
+            farmer_id: orderData.farmer_id,
+            consumer_id: user.id_user,
+            created_at: new Date().toISOString(),
+          }
         ]);
 
-      console.log('check farmer_id:', orderData.farmer_id);
+      if (error) {
+        showAlert("Order Error", "Failed to record the order. Please try again.");
+        console.error("Order Error:", error);
+        return;
+      }
 
-    if (error) {
-      showAlert("Order Error", "Failed to record the order. Please try again.");
-      console.error(error);
-      return;
-    }
+      console.log("Order recorded successfully:", data);
+
+      const nonNumericPart = availableString.replace(/(\d+(\.\d+)?)/, '').trim(); 
+      const updatedAvailableString = `${newAvailable.toFixed(2)} ${nonNumericPart}`;
+
+      const { error: updateError } = await supabase
+        .from('product') 
+        .update({ available: updatedAvailableString })
+        .eq('id', orderData.productId); 
+
+      if (updateError) {
+        showAlert("Update Error", "Failed to update available quantity. Please try again.");
+        console.error("Update Error:", updateError);
+        return;
+      }
+
+      if (newAvailable <= 0) {
+        try {
+          await markProductAsDone(orderData.productId); 
+        } catch (error) {
+          console.error("Error marking product as done:", error);
+        }
+      }
+
+      console.log("Available quantity updated successfully. New available quantity:", updatedAvailableString);
+      
       showAlert("Order Recorded", "Your order has been recorded. Please wait until the farmer confirms it after you have contacted them.");
       
       setTimeout(() => {
@@ -225,14 +277,14 @@ const styles = StyleSheet.create({
     marginBottom: 5,
   },
   orderText: {
-    fontFamily: 'medium',
+    fontFamily: 'regular',
     fontSize: 14,
     marginBottom: 5,
     color: '#333',
   },
   boldText: {
     fontSize: 14,
-    fontFamily: 'bold',
+    fontFamily: 'medium',
     color: '#333',
   },
   normalText: {

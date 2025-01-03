@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Dimensions, StatusBar, TextInput, ScrollView, Modal, Animated, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Dimensions, StatusBar, TextInput, ScrollView, Modal, Animated, ActivityIndicator } from 'react-native';
 import AntDesign from '@expo/vector-icons/AntDesign';
 import Feather from '@expo/vector-icons/Feather';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
@@ -48,11 +48,22 @@ export default function Product({ navigation, route }) {
   const [showNoDetailsMessage, setShowNoDetailsMessage] = useState(false);
   const [isConfirmationModalVisible, setIsConfirmationModalVisible] = useState(false);
   const [isDeleteConfirmationVisible, setIsDeleteConfirmationVisible] = useState(false);
-  const [isAddPostConfirmationVisible, setIsAddPostConfirmationVisible] = useState(false);
   const [isAlertVisible, setIsAlertVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertMessage, setAlertMessage] = useState('');
+  const [alertTitle, setAlertTitle] = useState('');
+  const [isLoadingProgress, setIsLoadingProgress] = useState(false);
+  const [modalProgress, setModalProgress] = useState(false);
+  const [progress, setProgress] = useState(0); 
 
-  const categories = ['Vegetable', 'Vegetable/Fruits', 'Vegetable/Highbreed', 'Fruit', 'Dairy', 'Grain', 'Meat'];
+  const showAlert = (title, message) => {
+    setAlertTitle(title);
+    setAlertMessage(message);
+    setAlertVisible(true);
+  };
+
+  const categories = ['Vegetable', 'Fruit', 'Grain', 'Flowers', 'Root Crops', 'Highland Vegetable', 'Lowland Vegetable', 'Spice'];
 
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
@@ -216,24 +227,6 @@ export default function Product({ navigation, route }) {
     setFocusedDescription(false);;
   };
 
-  const handleAddNewPost = () => {
-    setIsAddPostConfirmationVisible(true);
-  };
-
-  const confirmAddNewPost = () => {
-    setIsAddPostConfirmationVisible(false);
-    setImagesVideo([]);
-    setName('');
-    setProductPrice('');
-    setProductLocation('');
-    setProductDescription('');
-    setAdditionalDetails([]);
-    setFocusedName(false);
-    setFocusedPrice(false);
-    setFocusedLocation(false);
-    setFocusedDescription(false);
-  };
-
   const handleContentSizeChange = (contentSize) => {
     const { height } = contentSize;
 
@@ -312,8 +305,6 @@ export default function Product({ navigation, route }) {
           console.error('Error uploading file:', error);
           return null; 
         }
-
-        console.log('File uploaded successfully');
       };
     } catch (error) {
       console.error('Error uploading file:', error);
@@ -322,10 +313,6 @@ export default function Product({ navigation, route }) {
   };
 
   const handleConfirm = async () => {
-    if (!userId) {
-      Alert.alert('Error', 'User  ID is not available. Please log in.');
-      return;
-    }
   
     setIsConfirmationModalVisible(false);
     setIsLoading(true);
@@ -385,14 +372,14 @@ export default function Product({ navigation, route }) {
   
       if (error) {
         console.error('Error creating product:', error);
-        Alert.alert('Error', 'There was an error creating your product. Please try again.');
+        showAlert('Error', 'There was an error creating your product. Please try again.');
       } else {
-        console.log('Product created successfully:', data);
-        Alert.alert('Success', 'Product created successfully');
+        showAlert('Success', 'Product created successfully');
+        navigation.navigate('Product');
       }
     } catch (error) {
       console.error('Unexpected error during product operation:', error);
-      Alert.alert('Error', 'An unexpected error occurred. Please try again.');
+      showAlert('Error', 'An unexpected error occurred. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -465,17 +452,61 @@ export default function Product({ navigation, route }) {
   const handleOpenGallery = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permission to access camera roll is required!');
+      showAlert('Gallery Access Permission Needed','Permission to access camera roll is required!');
       return;
     }
+
+    setModalProgress(true);
+    setProgress(0); 
 
     let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images', 'videos'],
       aspect: [4, 3],
       quality: 1,
     });
-  
-    console.log(result);
+
+    if (!result.canceled) {
+      const selectedAsset = result.assets[0];
+
+      setIsLoadingProgress(true);
+      const interval = setInterval(() => {
+        setProgress((prev) => {
+          if (prev >= 100) {
+            clearInterval(interval);
+            return 100;
+          }
+          return prev + 10; 
+        });
+      }, 100);
+
+      setImagesVideo((prevImagesVideo) => [
+        ...prevImagesVideo,
+        {
+          uri: selectedAsset.uri,
+          type: selectedAsset.type,
+          name: selectedAsset.fileName || 'Uploaded Media',
+        },
+      ]);
+
+      setTimeout(() => {
+        setIsLoadingProgress(false);
+        setModalProgress(false); 
+      }, 1000); 
+    }
+  };
+
+  const handleOpenCamera = async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') {
+        showAlert('Camera Access Permission Needed','Permission to access camera is required!');
+        return;
+    }
+
+    let result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ['images', 'videos'],
+        aspect: [4, 3],
+        quality: 1,
+    });
 
     if (!result.canceled) {
       setImagesVideo((prevImagesVideo) => [
@@ -486,35 +517,6 @@ export default function Product({ navigation, route }) {
           name: result.assets[0].fileName || 'Uploaded Media',
         },
       ]);
-    }
-  };
-
-  const handleOpenCamera = async () => {
-    const { status } = await ImagePicker.requestCameraPermissionsAsync();
-    if (status !== 'granted') {
-        Alert.alert('Permission to access camera is required!');
-        return;
-    }
-
-    let result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ['images', 'videos'],
-        aspect: [4, 3],
-        quality: 1,
-    });
-
-    console.log(result);
-
-    if (!result.canceled) {
-        setImagesVideo((prevImagesVideo) => [
-            ...prevImagesVideo,
-            {
-                uri: result.assets[0].uri,
-                type: result.assets[0].type,
-                name: result.assets[0].fileName || 'Uploaded Media',
-            },
-        ]);
-    } else {
-        console.log('Camera was canceled');
     }
   };
 
@@ -531,13 +533,7 @@ export default function Product({ navigation, route }) {
         <StatusBar hidden={false} />
         <View style={styles.productContainer}>
           <View style={styles.actionButtons}>
-            <Text style={styles.sectionTitlePost}>Product Post</Text>
-            <TouchableOpacity style={styles.addButton} onPress={handleAddNewPost}>
-              <View style={styles.iconTextRow}>
-                <AntDesign name="pluscircleo" size={20} color="black" />
-                <Text style={styles.buttonText}>Add New Post</Text>
-              </View>
-            </TouchableOpacity>
+            <Text style={styles.sectionTitlePost}>Create Your Own Product Listing</Text>
 
             <TouchableOpacity style={styles.deleteButton} onPress={handleDeletePost}>
               <View style={styles.iconTextRow}>
@@ -599,6 +595,7 @@ export default function Product({ navigation, route }) {
           />
         </View>
         <Text style={styles.inputTitles}>Unit Price</Text>
+        <Text style={styles.inputTitlesCategoryNote}>*Note: The unit price should be the same as the product price.</Text>
         <View style={[styles.inputWrapper, focusedProductUnitPrice && productPrice.length === 0 && styles.errorBorder]}>
           <TextInput
             style={styles.input}
@@ -635,20 +632,23 @@ export default function Product({ navigation, route }) {
           </Text>
         </View>
         <Text style={styles.inputTitles}>Available Stock</Text>
+        <Text style={styles.inputTitlesCategoryNote}>*Sample: 20 kg</Text>
         <View style={[styles.inputWrapper, focusedAvailable && available.length === 0 && styles.errorBorder]}>
           <TextInput
             style={styles.input}
-            placeholder="Add Available Stock (add kg, g, lbs, etc.)"
+            placeholder="Add Available Stock (e.g., add kg, g, lbs, etc.)"
             value={available}
             onChangeText={setAvailable}
             onBlur={() => setFocusedAvailable(true)}
           />
         </View>
-        <Text style={styles.inputTitlesCategory}>Category</Text>
+        <Text style={styles.inputTitlesCategory}>
+          Category: <Text style={styles.inputTitlesCategoryNote}>*Note: Feel free to create your own categories.</Text>
+        </Text>
         <View style={[styles.inputWrapperCategory, focusedCategory && category.length === 0 && styles.errorBorder]}>
           <TextInput
             style={styles.inputCategory}
-            placeholder="Add Category"
+            placeholder="Add Category (e.g., Vegetable, Fruit, etc.)"
             value={category}
             onChangeText={handleCategoryChange}
             onBlur={() => setFocusedCategory(true)}
@@ -744,6 +744,13 @@ export default function Product({ navigation, route }) {
           onClose={() => setIsAlertVisible(false)} 
         />
 
+        <CustomAlert 
+          visible={alertVisible} 
+          title={alertTitle} 
+          message={alertMessage} 
+          onClose={() => setAlertVisible(false)} 
+        />
+
         {/* Confirmation Modal */}
         <Modal visible={isConfirmationModalVisible} transparent={true} animationType="fade">
           <View style={styles.modalContainer}>
@@ -771,23 +778,6 @@ export default function Product({ navigation, route }) {
           </View>
         </Modal>
 
-        {/* Add New Post Confirmation Modal */}
-        <Modal visible={isAddPostConfirmationVisible} transparent={true} animationType="fade">
-          <View style={styles.modalContainer}>
-            <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>Are you sure you want to add a new post?</Text>
-              <View style={styles.modalButtons}>
-                <TouchableOpacity style={styles.modalButton} onPress={confirmAddNewPost}>
-                  <Text style={styles.modalButtonTextYes}>Yes</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.modalButton} onPress={() => setIsAddPostConfirmationVisible(false)}>
-                  <Text style={styles.modalButtonTextNo}>No</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        </Modal>
-
         {/* Delete Confirmation Modal */}
         <Modal visible={isDeleteConfirmationVisible} transparent={true} animationType="fade">
           <View style={styles.modalContainer}>
@@ -804,6 +794,21 @@ export default function Product({ navigation, route }) {
             </View>
           </View>
         </Modal>
+
+        {/* Progress Modal */}
+      <Modal
+        transparent={true}
+        visible={modalProgress}
+        animationType="fade"
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Uploading....</Text>
+            <ActivityIndicator size="large" color="#0000ff" />
+            <Text style={styles.progressText}>{progress}%</Text>
+          </View>
+        </View>
+      </Modal>
 
       </ScrollView>
     </View>
@@ -903,21 +908,20 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   sectionTitlePost: {
-    fontSize: 16,
+    fontSize: 14,
     fontFamily: 'bold',
     color: 'black',
-    padding: 10,
   },
   actionButtons: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    padding: 10,
   },
   addButton: {
     padding: 10,
     borderRadius: 5,
   },
   deleteButton: {
-    padding: 10,
     borderRadius: 5,
   },
   iconTextRow: {
@@ -950,8 +954,7 @@ const styles = StyleSheet.create({
     fontFamily: 'medium'
   },
   productContainer: {
-    alignItems: 'center',
-    margin: 50,
+    marginVertical: 50,
     borderRadius: 5, 
   },
   imagePlaceholder: {
@@ -1027,6 +1030,7 @@ const styles = StyleSheet.create({
   },
   additionalButton: {
     padding: 5,
+    position: 'relative',
   },
   doneButton: {
     flexDirection: 'row',
@@ -1123,6 +1127,10 @@ const styles = StyleSheet.create({
   },
   inputTitlesCategory: {
     fontSize: 14,
+    fontFamily: 'regular',
+  },
+  inputTitlesCategoryNote: {
+    fontSize: 11,
     fontFamily: 'regular',
   },
   errorBorder: {

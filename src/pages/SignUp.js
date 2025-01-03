@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Image, ImageBackground, StyleSheet, Text, TextInput, TouchableOpacity, View, StatusBar, ActivityIndicator, Dimensions, Platform, Alert } from 'react-native';
+import { Image, ImageBackground, StyleSheet, Text, TextInput, TouchableOpacity, View, StatusBar, ActivityIndicator, Dimensions, Platform } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { supabase } from '../backend/supabaseClient';
+import CustomAlert from '../support/CustomAlert';
 
 const { width, height } = Dimensions.get('window');
 
@@ -23,6 +24,9 @@ export default function SignUpScreen({ navigation, route }) {
   const [emailExists, setEmailExists] = useState(false);
   const [phoneExists, setPhoneExists] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertMessage, setAlertMessage] = useState('');
+  const [alertTitle, setAlertTitle] = useState('');
 
   const isValidEmail = (email) => email.endsWith('@gmail.com');
 
@@ -31,34 +35,37 @@ export default function SignUpScreen({ navigation, route }) {
     return regex.test(password);
   };  
 
-  const checkExistingUsers = async () => {
+  const showAlert = (title, message) => {
+    setAlertTitle(title);
+    setAlertMessage(message);
+    setAlertVisible(true);
+  };
 
+  const checkExistingUsers = async () => {
     const { data: emailData, error: emailError } = await supabase
       .from('users')
       .select('email')
-      .ilike('email', email);
-
-      const { data: phoneData, error: phoneError } = await supabase
+      .ilike('email', email)
+      .limit(1); 
+  
+    const { data: phoneData, error: phoneError } = await supabase
       .from('users')
       .select('phone_number')
-      .eq('phone_number', phoneNumber);
+      .eq('phone_number', phoneNumber)
+      .limit(1); 
 
-    if (emailData.length > 0) {
+    if (emailData && emailData.length > 0) {
       setEmailExists(true);
-      setTimeout(() => setLoading(false), 2000);
     } else {
       setEmailExists(false);
-      setTimeout(() => setLoading(false), 2000);
     }
 
-    if (phoneData.length > 0) {
+    if (phoneData && phoneData.length > 0) {
       setPhoneExists(true);
-      setTimeout(() => setLoading(false), 2000);
     } else {
       setPhoneExists(false);
-      setTimeout(() => setLoading(false), 2000);
     }
-
+  
     return emailData.length === 0 && phoneData.length === 0;
   };
 
@@ -67,22 +74,22 @@ export default function SignUpScreen({ navigation, route }) {
   
     try {
       if (!email || !phoneNumber || !password || !confirmPassword || !agree) {
-        Alert.alert('Error', 'All fields are required.');
+        showAlert('Error', 'All fields are required.');
         return;
       }
   
       if (password !== confirmPassword) {
-        Alert.alert('Error', 'Passwords do not match.');
+        showAlert('Error', 'Passwords do not match.');
         return;
       }
   
       if (!isValidEmail(email)) {
-        Alert.alert('Error', 'Invalid email format.');
+        showAlert('Error', 'Invalid email format.');
         return;
       }
   
       if (!isStrongPassword(password)) {
-        Alert.alert('Error', 'Password must be at least 12 characters, including an uppercase letter, a number, and a special character.');
+        showAlert('Error', 'Password must be at least 12 characters, including an uppercase letter, a number, and a special character.');
         return;
       }
 
@@ -92,8 +99,6 @@ export default function SignUpScreen({ navigation, route }) {
         setLoading(false);
         return;
       }
-
-      console.log('Attempting to sign up with Supabase...');
 
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
@@ -107,25 +112,19 @@ export default function SignUpScreen({ navigation, route }) {
           }
         }
       });
-      
-      if (authData) {
-        console.log('User signed up:', authData);
-        console.log('Confirmming password:', password);
-      }
   
       if (authError) {
-        Alert.alert('Sign-Up Error', authError.message);
+        showAlert('Sign-Up Error', authError.message);
         return;
       }
-  
-      console.log('User successfully signed up:', authData);
       
-      Alert.alert('Success', 'User signed up successfully.');
-  
-      navigation.navigate('BasicInfo', { userId: authData.user.id, role });
-  
+      showAlert('Success', 'User signed up successfully.');
+
+      setTimeout(() => {
+        navigation.navigate('BasicInfo', { userId: authData.user.id, role });
+      }, 3000);
     } catch (error) {
-      Alert.alert('Sign-Up Error', error.message);
+      showAlert('Sign-Up Error', error.message);
     } finally {
       setLoading(false);
     }
@@ -289,6 +288,13 @@ export default function SignUpScreen({ navigation, route }) {
               <Text style={styles.signupButtonText}>Sign Up</Text>
             )}  
           </TouchableOpacity>
+
+          <CustomAlert 
+            visible={alertVisible} 
+            title={alertTitle} 
+            message={alertMessage} 
+            onClose={() => setAlertVisible(false)} 
+          />
 
         </View>
       </ImageBackground>

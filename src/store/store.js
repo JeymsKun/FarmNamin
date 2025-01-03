@@ -3,6 +3,8 @@ import productReducer from './productSlice';
 import postReducer from './postSlice';
 import allProductReducer from './allProductSlice'; 
 import favoritesSliceReducer from './favoritesSlice';
+import scheduleReducer from './scheduleSlice';
+import balanceSliceReducer from './balanceSlice';
 
 const store = configureStore({
   reducer: {
@@ -10,6 +12,8 @@ const store = configureStore({
     post: postReducer,
     allProducts: allProductReducer,
     favorites: favoritesSliceReducer,
+    schedules: scheduleReducer,
+    balance: balanceSliceReducer,
   },
 });
 

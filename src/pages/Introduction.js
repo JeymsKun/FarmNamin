@@ -70,7 +70,7 @@ const IntroductionCarousel = ({ route }) => {
         useNativeDriver: false,
       }).start(() => setCurrentSlide(currentSlide + 1));
     } else {
-      navigation.navigate('WelcomeScreen', { role, name });
+      navigation.navigate('Welcome', { role, name });
     }
   };
 

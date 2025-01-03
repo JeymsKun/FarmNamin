@@ -14,10 +14,7 @@ import CalendarScreen from '../pages/Calendar';
 import ScheduleScreen from '../pages/Schedule';
 import TraceAndTraceScreen from '../pages/TrackAndTrace';
 import TagScreen from '../pages/Tag';
-import FinancialLogScreen from '../pages/FinancialLog';
 import OverviewBalanceScreen from '../pages/OverviewBalance';
-import DisplayFinancialAccScreen from '../pages/DisplayFinancialAcc';
-import FinancialAccountScreen from '../pages/FinancialAccount';
 import AgricultureTipsScreen from '../pages/AgricultureTips';
 import WeatherScreen from '../pages/Weather';
 import MarketPriceScreen from '../pages/MarketPrice';
@@ -40,6 +37,13 @@ import ConsumerFeedbackScreen from '../pages/ConsumerFeedback';
 import ConsumerDetailsScreen from '../pages/ConsumerDetails';
 import NotificationFarmerScreen from '../pages/NotificationFarmer';
 import FarmerOrderConfirmationScreen from '../pages/FarmerOrderConfirmation';
+import MarketplaceFarmerScreen from '../pages/MarketplaceFarmer';
+import OrderConfirmationScreen from '../pages/OrderConfirmation';
+import NotificationConsumerScreen from '../pages/NotificationConsumer';
+import ConsumerProductViewerScreen from '../support/ConsumerProductViewer';
+import FarmerDetailsScreen from '../pages/FarmerDetails';
+import FarmerOwnViewerScreen from '../pages/FarmerOwnViewer';
+import FarmerProductViewerScreen from '../pages/FarmerProductViewer';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -58,11 +62,8 @@ const ProductStack = () => {
             <Stack.Screen name="Schedule" component={ScheduleScreen}/>
             <Stack.Screen name="TraceAndTrack" component={TraceAndTraceScreen}/>
             <Stack.Screen name="Tag" component={TagScreen}/>
-            <Stack.Screen name="FinancialLog" component={FinancialLogScreen}/>
             <Stack.Screen name="OverviewBalance" component={OverviewBalanceScreen}/>
-            <Stack.Screen name="DisplayFinancialAcc" component={DisplayFinancialAccScreen}/>
-            <Stack.Screen name="FinancialAccount" component={FinancialAccountScreen}/>
-            <Stack.Screen name="Marketplace" component={MarketplaceScreen} />
+            <Stack.Screen name="MarketplaceFarmer" component={MarketplaceFarmerScreen} />
             <Stack.Screen name="AgricultureTips" component={AgricultureTipsScreen}/>
             <Stack.Screen name="Weather" component={WeatherScreen}/>
             <Stack.Screen name="MarketPrice" component={MarketPriceScreen}/>
@@ -70,6 +71,8 @@ const ProductStack = () => {
             <Stack.Screen name="AdditionalDetails" component={AdditonalDetailsScreen}/>
             <Stack.Screen name="NotificationFarmer" component={NotificationFarmerScreen}/>
             <Stack.Screen name="FarmerOrderConfirmation" component={FarmerOrderConfirmationScreen}/>
+            <Stack.Screen name="FarmerDetails" component={FarmerDetailsScreen}/>
+            <Stack.Screen name="FarmerProductViewer" component={FarmerProductViewerScreen}/>
         </Stack.Navigator>
     );
 };
@@ -85,6 +88,8 @@ const MarketplaceStack = () => {
             <Stack.Screen name="Marketplace" component={MarketplaceScreen} />
             <Stack.Screen name="ProductViewer" component={ProductViewerScreen}/>
             <Stack.Screen name="ConsumerOrder" component={ConsumerOrderScreen}/>
+            <Stack.Screen name="NotificationConsumer" component={NotificationConsumerScreen}/>
+            <Stack.Screen name="OrderConfirmation" component={OrderConfirmationScreen}/>
         </Stack.Navigator>
     );
 };
@@ -117,6 +122,10 @@ const ProfileConsumerStack = () => {
             <Stack.Screen name="EditConsumerBasicInfo" component={EditConsumerBasicInfoScreen}/>
             <Stack.Screen name="EditConsumerProfile" component={EditConsumerProfileScreen}/>
             <Stack.Screen name="VerificationConsumer" component={VerificationConsumerScreen}/>
+            <Stack.Screen name="ConsumerProductViewer" component={ConsumerProductViewerScreen}/>
+            <Stack.Screen name="OrderConfirmation" component={OrderConfirmationScreen}/>
+            <Stack.Screen name="ConsumerOrder" component={ConsumerOrderScreen}/>
+            <Stack.Screen name="FarmerDetails" component={FarmerDetailsScreen}/>
         </Stack.Navigator>
     );
 };
@@ -137,6 +146,7 @@ const ProfileFarmerStack = () => {
             <Stack.Screen name="Verification" component={VerificationScreen}/>
             <Stack.Screen name="ConsumerFeedback" component={ConsumerFeedbackScreen}/>
             <Stack.Screen name="ConsumerDetails" component={ConsumerDetailsScreen}/>
+            <Stack.Screen name="FarmerOwnViewer" component={FarmerOwnViewerScreen}/>
         </Stack.Navigator>
     );
 };

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { View, Text, StyleSheet, Image, TouchableOpacity, ImageBackground, StatusBar, FlatList, Animated, ScrollView } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
@@ -9,25 +9,84 @@ import { setProfile, setProducts } from '../store/profileSlice';
 import { fetchProfileData, fetchUserProducts, fetchFeedbacks } from '../utils/api';
 import { useAuth } from '../hooks/useAuth';
 import useRealTimeUpdates from '../hooks/useRealTimeUpdates';
+import * as VideoThumbnails from 'expo-video-thumbnails';
 
-class ProductItem extends React.PureComponent {
+const thumbnailCache = {};
+
+class ProductItem extends React.Component {
+  state = {
+    thumbnail: null,
+  };
+
+  async componentDidMount() {
+    const { item } = this.props;
+    await this.generateThumbnail(item);
+  }
+
+  async generateThumbnail(item) {
+    const videoUri = item.videos?.[0];
+    if (videoUri) {
+      if (thumbnailCache[videoUri]) {
+        this.setState({ thumbnail: thumbnailCache[videoUri] });
+      } else {
+        try {
+          const { uri } = await VideoThumbnails.getThumbnailAsync(videoUri);
+          thumbnailCache[videoUri] = uri; 
+          this.setState({ thumbnail: uri });
+        } catch (error) {
+          console.error("Error generating thumbnail:", error);
+        }
+      }
+    }
+  }
+
+  shouldComponentUpdate(nextProps, nextState) {
+    return (
+      nextProps.item !== this.props.item || 
+      nextProps.navigation !== this.props.navigation || 
+      nextState.thumbnail !== this.state.thumbnail
+    );
+  }
+
   render() {
-    const { item, navigateToProductDetails, productNameFontSize, productPriceFontSize, formatPrice } = this.props;
+    const { item, navigation, setIsProductDetailActive, formatPrice, productNameFontSize, productPriceFontSize} = this.props;
+    const { thumbnail } = this.state;
 
     return (
       <View style={styles.productCard}>
-        <TouchableOpacity onPress={() => navigateToProductDetails(item.id)}>
-          <Image
-            source={{ uri: item.images[0] }} 
-            style={styles.productImage}
-            resizeMode="cover"
-            onError={(error) => console.error('Image loading error:', error.nativeEvent.error)}
-          />
-        </TouchableOpacity>
-        <View style={styles.productInfo}>
+        <View>
+          {thumbnail ? (
+            <View style={styles.videoContainer}>
+              <Image
+                source={{ uri: thumbnail }} 
+                style={styles.productImage}
+                resizeMode="cover"
+              />
+              <View style={styles.playButton}>
+                <Ionicons name="play-circle-outline" size={30} color="white" />
+              </View>
+            </View>
+          ) : item.images?.[0] ? (
+            <Image
+              source={{ uri: item.images[0] }} 
+              style={styles.productImage}
+              resizeMode="cover"
+            />
+          ) : (
+            <View style={styles.noImageContainer}>
+              <Text style={styles.noImageText}>No Image Available</Text>
+            </View>
+          )}
+        </View>
+        <TouchableOpacity style={styles.productInfo} 
+          onPress={() => {
+            setIsProductDetailActive(true); 
+            navigation.navigate('FarmerOwnViewer', { product: item });
+          }}
+        >
           <Text style={[styles.productName, { fontSize: productNameFontSize }]}>{item.name}</Text>
           <Text style={[styles.productPrice, { fontSize: productPriceFontSize }]}>{formatPrice(item.price)}</Text>
-        </View>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -39,11 +98,9 @@ const DEFAULT_PROFILE_IMAGE = require('../../assets/main/default_profile_photo.p
 const ProfileScreen = ({ navigation }) => {
   const { user } = useAuth();
   const dispatch = useDispatch();
-  const [profileModalVisible, setProfileModalVisible] = useState(false);
-  const [coverModalVisible, setCoverModalVisible] = useState(false);
   const [showMessage, setShowMessage] = useState(false);
+  const [isProductDetailActive, setIsProductDetailActive] = useState(false);
   const [fadeAnim] = useState(new Animated.Value(1));
-  const profileScale = useRef(new Animated.Value(1)).current; 
   const flatListRef = useRef(null);
 
   const getFontSizes = (item) => {
@@ -62,15 +119,17 @@ const ProfileScreen = ({ navigation }) => {
   };
 
   useFocusEffect(
-    React.useCallback(() => {
-      if (flatListRef.current) {
-        flatListRef.current.scrollToOffset({ animated: true, offset: 0 }); 
+    useCallback(() => {
+      if (!isProductDetailActive) {
+        refetchProfile();
+        if (user) {
+          refetchProducts();
+        }
+        if (flatListRef.current) {
+          flatListRef.current.scrollToOffset({ animated: true, offset: 0 }); 
+        }
       }
-
-      refetchProfile();
-      refetchProducts();
-
-    }, [])
+    }, [isProductDetailActive, user, refetchProfile, refetchProducts])
   );
 
   const { data: profile, isLoading: loadingProfile, refetch: refetchProfile } = useQuery({
@@ -115,10 +174,6 @@ const ProfileScreen = ({ navigation }) => {
       setShowMessage(false); 
     });
   };
-
-  const navigateToProductDetails = (productId) => {
-    navigation.navigate('ProductDetailsScreen', { productId });
-  };  
 
   const handleDotsClick = () => {
     navigation.navigate('ProfileSettings'); 
@@ -240,7 +295,8 @@ const ProfileScreen = ({ navigation }) => {
       <ProductItem 
         item={item} 
         formatPrice={formatPrice}
-        navigateToProductDetails={navigateToProductDetails} 
+        navigation={navigation}
+        setIsProductDetailActive={setIsProductDetailActive} 
         productNameFontSize={productNameFontSize} 
         productPriceFontSize={productPriceFontSize}
       />
@@ -325,6 +381,23 @@ const styles = StyleSheet.create({
   profileImage: {
     width: '100%', 
     height: 200, 
+  },
+  videoContainer: {
+    position: 'relative',
+    width: '100%',
+    height: 150,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f0f0f0',  
+  },
+  playButton: {
+    position: 'absolute',
+    justifyContent: 'center',
+    alignItems: 'center',
+    top: '50%',
+    left: '50%',
+    marginLeft: -15, 
+    marginTop: -15, 
   },
   verifyIconContainer: {
     position: 'absolute',
@@ -459,7 +532,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     marginTop: 10,
-    fontSize: 16,
+    fontSize: 14,
     fontFamily: 'medium',
   },
   productCard: {
@@ -472,6 +545,18 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
+  },
+  noImageContainer: {
+    width: '100%',
+    height: 150,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f0f0f0',
+  },
+  noImageText: {
+    color: '#888', 
+    fontSize: 14,
+    fontFamily: 'regular',
   },
   productImage: {
     width: '100%',

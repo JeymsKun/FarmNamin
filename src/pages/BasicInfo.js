@@ -326,7 +326,9 @@ const ProfileSetUp = ({ navigation, route }) => {
               <Text style={[styles.modalMessage, { color: modalType === 'success' ? 'green' : 'red' }]}>
                 {modalMessage}
               </Text>
-              <Button title="Close" onPress={closeModal} />
+              <TouchableOpacity onPress={closeModal}>
+                <Text style={styles.close}>Close</Text>
+              </TouchableOpacity>
             </View>
           </View>
         </Modal>
@@ -463,8 +465,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalMessage: {
-    fontSize: 16,
+    fontSize: 14,
+    fontFamily: 'medium',
     marginBottom: 16,
+  },
+  close: {
+    fontSize: 14,
+    fontFamily: 'regular'
   },
 });
 

@@ -1,14 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, Dimensions, StyleSheet, StatusBar, TouchableOpacity, ScrollView, Modal } from 'react-native';
+import { View, Text, Dimensions, StyleSheet, StatusBar, TouchableOpacity, ScrollView, Modal, ActivityIndicator } from 'react-native';
 import { PieChart } from 'react-native-chart-kit'; 
 import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect } from '@react-navigation/native';
 import RNPickerSelect from 'react-native-picker-select';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import AntDesign from '@expo/vector-icons/AntDesign';
 import { useAuth } from '../hooks/useAuth'; 
 import { supabase } from '../backend/supabaseClient';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { useQuery } from '@tanstack/react-query';
+import { fetchBalances } from '../utils/api';
+import useRealTimeUpdates from '../hooks/useRealTimeUpdates';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
 
 const { width } = Dimensions.get('window');
@@ -18,133 +20,99 @@ const ProductScreen = ({ route }) => {
     const navigation = useNavigation();
     const [showInfoMessage, setShowInfoMessage] = useState(false);
     const [selectedPeriod, setSelectedPeriod] = useState("overall");
-    const [accountToDelete, setAccountToDelete] = useState(null);
     const [showAllTags, setShowAllTags] = useState(false);
-    const [showAllLogs, setShowAllLogs] = useState(false);
     const [showAllBalances, setShowAllBalances] = useState(false);
-    const [showDeleteConfirmationModal, setShowDeleteConfirmationModal] = useState(false);
-    const [selectedAccounts, setSelectedAccounts] = useState(route.params?.selectedAccounts || []);
     const [selectedTags, setSelectedTags] = useState([]);
     const [selectedBalances, setSelectedBalances] = useState([]);
-    const [totalIncome, setTotalIncome] = useState(0);
-    const [totalExpense, setTotalExpense] = useState(0);
-    const [totalSaving, setTotalSaving] = useState(0);
-    const [totalInvestment, setTotalInvestment] = useState(0);
-    const [totalBalance, setTotalBalance] = useState(0);
     const subscriptionRef = useRef(null);
+
+    useRealTimeUpdates(user?.id_user);
 
     useEffect(() => {
         if (user) {
-            console.log('Current user navigating to Trace and Track:', user);
-            loadDataBalance(); 
+            console.log('Check user:', user);
             loadData(); 
         }
-    }, [user]); 
+    }, [user]);
+
+    useFocusEffect(
+        React.useCallback(() => {
+            refetchBalances();
+        }, [refetchBalances])
+    );
+
+    const { data: fetchedBalances = [], isLoading: loadingBalances, refetch: refetchBalances } = useQuery({
+        queryKey: ['balances', user?.id_user],
+        queryFn: () => fetchBalances(user.id_user),
+        enabled: !!user, 
+        staleTime: 1000 * 60 * 5,
+    });
 
     useEffect(() => {
-        loadDataBalance(); 
-    }, [selectedPeriod]);
+        if (fetchedBalances.length > 0) {
+            loadDataBalance(fetchedBalances); 
+        }
+    }, [fetchedBalances, selectedPeriod]);
 
-    const loadDataBalance = async () => {
-        if (!user) return;
-
-        try {
-            const { data, error } = await supabase
-                .from('overviewbalance')
-                .select('overview_balance_id, description, amount, type, created_at')
-                .eq('id_user', user.id_user); 
-    
-            if (error) {
-                console.error('Error fetching balances:', error);
-                return;
-            }
-    
-            console.log('Raw fetched balances data:', data);
-    
-            if (data && data.length > 0) {
-                const today = new Date();
-                const filteredData = data.filter(item => {
-                    const createdAt = new Date(item.created_at);
-                    if (selectedPeriod === 'overall') {
-                        return true; 
-                    } else if (selectedPeriod === 'daily') {
+    const loadDataBalance = (data) => {
+        if (data && data.length > 0) {
+            const today = new Date();
+            const filteredData = data.filter(item => {
+                const createdAt = new Date(item.created_at);
+                switch (selectedPeriod) {
+                    case 'overall':
+                        return true;
+                    case 'daily':
                         return createdAt.toDateString() === today.toDateString();
-                    } else if (selectedPeriod === 'monthly') {
+                    case 'monthly':
                         return createdAt.getMonth() === today.getMonth() && createdAt.getFullYear() === today.getFullYear();
-                    } else if (selectedPeriod === 'yearly') {
+                    case 'yearly':
                         return createdAt.getFullYear() === today.getFullYear();
-                    }
-                    return false;
-                });
+                    default:
+                        return false;
+                }
+            });
+    
+            const groupedBalances = filteredData.reduce((acc, item) => {
+                const { overview_balance_id } = item;
+                if (!acc[overview_balance_id]) {
+                    acc[overview_balance_id] = {
+                        overview_balance_id,
+                        totalIncome: 0,
+                        totalExpense: 0,
+                        totalSaving: 0,
+                        totalInvestment: 0,
+                        balances: []
+                    };
+                }
 
-                setSelectedBalances(filteredData);
+                acc[overview_balance_id].balances.push(item);
+ 
+                switch (item.type) {
+                    case 'Income':
+                        acc[overview_balance_id].totalIncome += item.amount;
+                        break;
+                    case 'Expense':
+                        acc[overview_balance_id].totalExpense += item.amount;
+                        break;
+                    case 'Saving':
+                        acc[overview_balance_id].totalSaving += item.amount;
+                        break;
+                    case 'Investment':
+                        acc[overview_balance_id].totalInvestment += item.amount;
+                        break;
+                    default:
+                        break;
+                }
     
-                const totalIncome = filteredData
-                    .filter(item => item.type === 'Income') 
-                    .reduce((acc, item) => acc + item.amount, 0);
+                return acc;
+            }, {});
     
-                const totalExpense = filteredData
-                    .filter(item => item.type === 'Expense') 
-                    .reduce((acc, item) => acc + item.amount, 0);
-    
-                const totalSaving = filteredData
-                    .filter(item => item.type === 'Saving') 
-                    .reduce((acc, item) => acc + item.amount, 0); 
-    
-                const totalInvestment = filteredData
-                    .filter(item => item.type === 'Investment') 
-                    .reduce((acc, item) => acc + item.amount, 0);
-    
-                const totalBalance = totalIncome - totalExpense; 
-    
-                setTotalIncome(totalIncome);
-                setTotalExpense(totalExpense);
-                setTotalSaving(totalSaving);
-                setTotalInvestment(totalInvestment);
-                setTotalBalance(totalBalance);
-
-                updatePieChartData(totalIncome, totalExpense, totalSaving, totalInvestment);
-            } else {
-                console.log('No balances found in the database.');
-            }
-        } catch (err) {
-            console.error('Unexpected error loading data:', err);
+            const totals = Object.values(groupedBalances);
+            setSelectedBalances(totals); 
         }
     };
-
-    const listenForBalancesChanges = async () => {
-        if (subscriptionRef.current) return;
-        try {
-            const subscription = supabase
-                .channel('database_changes')
-                .on('postgres_changes', { event: '*', schema: 'public', table: 'overviewbalance' }, async (payload) => {
-                    console.log('Database change detected:', payload);
-                    await loadDataBalance();  
-                })
-                .subscribe((status) => {
-                    if (status === 'SUBSCRIBED') {
-                        console.log('Successfully subscribed to tags changes.');
-                    }
-                });
-            return subscription;
-        } catch (err) {
-            console.error('Error subscribing to database changes:', err);
-        }
-    };
-
-    useEffect(() => {
-        loadDataBalance().then(() => {
-            listenForBalancesChanges();
-        });
     
-        return () => {
-            if (subscriptionRef.current) {
-                supabase.removeSubscription(subscriptionRef.current);
-                subscriptionRef.current = null;
-            }
-        };
-    }, []);
-
     const loadData = async () => {
         if (!user) return;
 
@@ -158,14 +126,10 @@ const ProductScreen = ({ route }) => {
                 console.error('Error fetching tags:', error);
                 return;
             }
-
-            console.log('Raw fetched tags data:', data);
     
             if (data && data.length > 0) {
                 
                 setSelectedTags(data);
-            } else {
-                console.log('No tags found in the database.');
             }
         } catch (err) {
             console.error('Unexpected error loading data:', err);
@@ -209,7 +173,31 @@ const ProductScreen = ({ route }) => {
         return `₱ ${amount.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`;
     };
 
-    const SwipeableBalanceItem = ({ balance, totalIncome, totalExpense, totalSaving, totalInvestment, totalBalance, handleDeleteTag }) => {
+    const handleDeleteBalance = async (balance) => {
+        if (!balance || !balance.overview_balance_id) { 
+            console.error('Invalid balance object:', balance);
+            return; 
+        }
+    
+        try {
+            const { error } = await supabase
+                .from('overviewbalance')
+                .delete()
+                .eq('overview_balance_id', balance.overview_balance_id); 
+    
+            if (error) {
+                console.error('Error deleting balance:', error);
+                return;
+            }
+
+            refetchBalances();
+    
+        } catch (err) {
+            console.error('Unexpected error deleting balance:', err);
+        }
+    };
+
+    const SwipeableBalanceItem = ({ balance, totalIncome, totalExpense, totalSaving, totalInvestment, totalBalance, handleDeleteBalance }) => {
         const translateX = useSharedValue(0);
         const SWIPE_THRESHOLD = 50;
         const MAX_SWIPE = 150;
@@ -229,63 +217,63 @@ const ProductScreen = ({ route }) => {
         const animatedStyle = useAnimatedStyle(() => ({
             transform: [{ translateX: -translateX.value }],
         }));
+
+        const hasNonZeroTotals = totalIncome > 0 || totalExpense > 0 || totalSaving > 0 || totalInvestment > 0;
     
         return (
-            <View style={styles.swipeableContainer}>
-                <GestureDetector gesture={panGesture}>
-                    <Animated.View style={[styles.swipeableItem, animatedStyle]}>
-                        <View style={styles.balanceItem}>
-                            <TouchableOpacity 
-                                onPress={() => handleArrowClick(accountName)} 
-                                style={styles.arrowButton} 
-                            >
-                                <MaterialIcons name="arrow-forward-ios" size={24} color="white" />
-                            </TouchableOpacity>
-                            <View style={styles.balanceRowArrow}>
+            hasNonZeroTotals ? ( 
+                <View style={styles.swipeableContainer}>
+                    <GestureDetector gesture={panGesture}>
+                        <Animated.View style={[styles.swipeableItem, animatedStyle]}>
+                            <View style={styles.balanceItem}>
                                 {totalIncome > 0 && (
-                                    <Text style={styles.productBalanceText}>
-                                        {`Total Income: ${formatAmount(totalIncome)}`}
-                                    </Text>
+                                    <View style={styles.balanceRowArrow}>
+                                        <Text style={styles.productBalanceText}>
+                                            {`Total Income: ${formatAmount(totalIncome)}`}
+                                        </Text>
+                                    </View>
                                 )}
-                            </View>
-                            <View style={styles.balanceRow}>
                                 {totalExpense > 0 && (
-                                    <Text style={styles.productBalanceText}>
-                                        {`Total Expense: ${formatAmount(totalExpense)}`}
-                                    </Text>
+                                    <View style={styles.balanceRow}>
+                                        <Text style={styles.productBalanceText}>
+                                            {`Total Expense: ${formatAmount(totalExpense)}`}
+                                        </Text>
+                                    </View>
                                 )}
-                            </View>
-                            <View style={styles.balanceRow}>
                                 {totalSaving > 0 && (
-                                    <Text style={styles.productBalanceText}>
-                                        {`Total Saving: ${formatAmount(totalSaving)}`}
-                                    </Text>
+                                    <View style={styles.balanceRow}>
+                                        <Text style={styles.productBalanceText}>
+                                            {`Total Saving: ${formatAmount(totalSaving)}`}
+                                        </Text>
+                                    </View>
                                 )}
-                            </View>
-                            <View style={styles.balanceRow}>
                                 {totalInvestment > 0 && (
-                                    <Text style={styles.productBalanceText}>
-                                        {`Total Investment: ${formatAmount(totalInvestment)}`}
-                                    </Text>
+                                    <View style={styles.balanceRow}>
+                                        <Text style={styles.productBalanceText}>
+                                            {`Total Investment: ${formatAmount(totalInvestment)}`}
+                                        </Text>
+                                    </View>
+                                )}
+                                {totalBalance !== 0 && (
+                                    <View style={styles.balanceRow}>
+                                        <Text style={styles.productBalanceText}>
+                                            {`Net Balance: ${formatAmount(totalBalance)}`}
+                                        </Text>
+                                    </View>
                                 )}
                             </View>
-                            {totalIncome > 0 || totalExpense > 0 || totalSaving > 0 || totalInvestment > 0 ? (
-                                <View style={styles.balanceRow}>
-                                    <Text style={styles.productBalanceText}>
-                                        {`Net Balance: ${formatAmount(totalBalance)}`}
-                                    </Text>
-                                </View>
-                            ) : null}
-                            
-                        </View>
-                        <Animated.View style={styles.deleteButton}>
-                            <TouchableOpacity onPress={() => handleDeleteTag(balance.description)}>
-                                <MaterialIcons name="delete" size={24} color="white" />
-                            </TouchableOpacity>
+                            <Animated.View style={styles.deleteButton}>
+                                <TouchableOpacity onPress={() => {
+                                    console.log('Delete button pressed for balance:', balance);
+                                    handleDeleteBalance(balance);
+                                }}>
+                                    <MaterialIcons name="delete" size={24} color="white" />
+                                </TouchableOpacity>
+                            </Animated.View>
                         </Animated.View>
-                    </Animated.View>
-                </GestureDetector>
-            </View>
+                    </GestureDetector>
+                </View>
+            ) : null 
         );
     };
 
@@ -317,7 +305,7 @@ const ProductScreen = ({ route }) => {
                         <View style={styles.accountItem}>
                             <View style={styles.accountRow}>
                                 <Text style={styles.productTagText}>
-                                    {tag.description} - ₱{tag.amount.toFixed(2)}
+                                    {`${tag.description} - ${formatAmount(tag.amount)}`}
                                 </Text>
                             </View>
                         </View>
@@ -353,113 +341,6 @@ const ProductScreen = ({ route }) => {
         }
     };
 
-    
-    const SwipeableItem = ({ accountName }) => {
-        const translateX = useSharedValue(0);
-        const SWIPE_THRESHOLD = 50;
-        const MAX_SWIPE = 150;
-    
-        const panGesture = Gesture.Pan()
-            .onUpdate((event) => {
-                translateX.value = Math.min(Math.max(0, event.translationX), MAX_SWIPE);
-            })
-            .onEnd(() => {
-                if (translateX.value > SWIPE_THRESHOLD) {
-                    translateX.value = withSpring(MAX_SWIPE);
-                } else {
-                    translateX.value = withSpring(0);
-                }
-            });
-    
-        const animatedStyle = useAnimatedStyle(() => ({
-            transform: [{ translateX: -translateX.value }],
-        }));
-    
-        return (
-            <View style={styles.swipeableContainer}>
-                <GestureDetector gesture={panGesture}>
-                    <Animated.View style={[styles.swipeableItem, animatedStyle]}>
-                        {/* Schedule Item */}
-                        <View style={styles.accountItem}>
-                            <View style={styles.accountRow}>
-                                <Text style={styles.productAccountText}>
-                                    {accountName}
-                                </Text>
-    
-                                <TouchableOpacity onPress={() => handleArrowClick(accountName)}>
-                                    <MaterialIcons name="arrow-forward-ios" size={24} color="white" />
-                                </TouchableOpacity>
-                            </View>
-    
-                        </View>
-    
-                        {/* Delete Button (appears after swipe) */}
-                        <Animated.View style={styles.deleteButton}>
-                            <TouchableOpacity onPress={() => confirmDelete(accountName)}>
-                                <MaterialIcons name="delete" size={24} color="white" />
-                            </TouchableOpacity>
-                        </Animated.View>
-                    </Animated.View>
-                </GestureDetector>
-            </View>
-        );
-    };
-    
-
-    const handleDelete = async () => {
-        if (!accountToDelete) return;
-
-        try {
-            const { error } = await supabase
-                .from('financiallogs')
-                .delete()
-                .eq('account', accountToDelete); 
-            if (error) {
-                console.error('Error deleting account records:', error);
-                return;
-            }
-
-            setSelectedAccounts((prevAccounts) => prevAccounts.filter(account => account !== accountToDelete));
-            setShowDeleteConfirmationModal(false);
-            setAccountToDelete(null);
-        } catch (err) {
-            console.error('Unexpected error deleting account records:', err);
-        }
-    };
-
-    const handleArrowClick = (accountName) => {
-        navigation.navigate('FinancialAccount', { selectedAccount: accountName });
-    };
-
-    const loadSelectedAccounts = async () => {
-        try {
-            const storedAccounts = await AsyncStorage.getItem('selectedAccounts');
-            if (storedAccounts) {
-                const accounts = JSON.parse(storedAccounts);
-                console.log('Loaded Accounts:', accounts);
-                setSelectedAccounts(accounts);
-            }
-        } catch (error) {
-            console.error('Failed to load selected accounts:', error);
-        }
-    };
-
-    const saveSelectedAccounts = async (accounts) => {
-        try {
-            await AsyncStorage.setItem('selectedAccounts', JSON.stringify(accounts));
-        } catch (error) {
-            console.error('Failed to save selected accounts:', error);
-        }
-    };
-
-    useEffect(() => {
-        loadSelectedAccounts(); 
-    }, []);
-
-    useEffect(() => {
-        saveSelectedAccounts(selectedAccounts); 
-    }, [selectedAccounts]);
-
     useEffect(() => {
         const clearMessage = () => {
             setShowInfoMessage(false);
@@ -472,11 +353,6 @@ const ProductScreen = ({ route }) => {
 
         return () => clearTimeout(timer); 
     }, [showInfoMessage]);
-
-    const confirmDelete = (accountName) => {
-        setAccountToDelete(accountName);
-        setShowDeleteConfirmationModal(true);
-    };  
 
     const [pieData, setPieData] = useState([
         {
@@ -508,16 +384,33 @@ const ProductScreen = ({ route }) => {
             legendFontSize: 12
         },
     ]);
-
-    const updatePieChartData = (totalIncome, totalExpense, totalSaving, totalInvestment) => {
+    
+    const calculateTotals = (balances) => {
+        let totalIncome = 0;
+        let totalExpense = 0;
+        let totalSaving = 0;
+        let totalInvestment = 0;
+    
+        balances.forEach(group => {
+            totalIncome += group.totalIncome;
+            totalExpense += group.totalExpense;
+            totalSaving += group.totalSaving;
+            totalInvestment += group.totalInvestment;
+        });
+    
         const netBalance = totalIncome - totalExpense;
- 
+    
+        return { totalIncome, totalExpense, totalSaving, totalInvestment, netBalance };
+    };
+    
+    const updatePieChartData = (totalIncome, totalExpense, totalSaving, totalInvestment, netBalance) => {
         const total = totalIncome + totalExpense + totalSaving + totalInvestment;
 
         const incomePercentage = total > 0 ? (totalIncome / total) * 100 : 0;
         const expensePercentage = total > 0 ? (totalExpense / total) * 100 : 0;
         const savingPercentage = total > 0 ? (totalSaving / total) * 100 : 0;
         const investmentPercentage = total > 0 ? (totalInvestment / total) * 100 : 0;
+        const netBalancePercentage = total > 0 ? (netBalance / total) * 100 : 0;
     
         setPieData([
             {
@@ -550,7 +443,7 @@ const ProductScreen = ({ route }) => {
             },
             {
                 name: 'Net Balance',
-                population: total > 0 ? (netBalance / total) * 100 : 0,
+                population: netBalancePercentage,
                 color: 'orange',
                 legendFontColor: 'black',
                 legendFontSize: 12
@@ -558,11 +451,15 @@ const ProductScreen = ({ route }) => {
         ]);
     };
     
+    useEffect(() => {
+        const { totalIncome, totalExpense, totalSaving, totalInvestment, netBalance } = calculateTotals(selectedBalances);
+        updatePieChartData(totalIncome, totalExpense, totalSaving, totalInvestment, netBalance);
+    }, [selectedBalances]);
+    
   return (
     <ScrollView style={styles.container} scrollEventThrottle={16} showsVerticalScrollIndicator={false} >
         <StatusBar hidden={false} />
 
-        {/* Header */}
         <View style={styles.header}>
             <View style={styles.headerTitle}>
                 <Text style={styles.headerTitleText}>Hello, {user?.first_name.trim() || 'User'}!</Text>
@@ -572,71 +469,76 @@ const ProductScreen = ({ route }) => {
             </View>
         </View>
 
-       {/* Statistics Container */}
        <View style={styles.statisticsContainer}>
-            <View style={styles.rowStatistics}>
-                <Text style={styles.title}>Statistics</Text>
-                <TouchableOpacity onPress={() => setShowInfoMessage((prev) => !prev)}>
-                    <AntDesign name="questioncircleo" size={14} color="black" />
-                </TouchableOpacity>
-            </View>
-
-            <View style={styles.rowDetailsPicker}>
-                <View style={styles.detailsContainer}>
-                    <Text style={styles.textDetails}>You can view your overall finances here.</Text>
+                <View style={styles.rowStatistics}>
+                    <Text style={styles.title}>Statistics</Text>
                 </View>
-                <View style={styles.wrapperPicker}>
-                    <RNPickerSelect
-                        onValueChange={(value) => setSelectedPeriod(value)}
-                        items={[
-                            { label: 'Overall', value: 'overall' },
-                            { label: 'Daily', value: 'daily' },
-                            { label: 'Monthly', value: 'monthly' },
-                            { label: 'Yearly', value: 'yearly' }
-                        ]}
-                        value={selectedPeriod}
-                        placeholder={{ label: "Select period", value: null }}
-                        style={styles.picker}
-                    />
-                </View>
-            </View>
 
-            {/* Pie Chart Section */}
-            <View style={styles.pieContainer}>
-                <Text style={styles.textTotal}>Total Income</Text>
-                <Text style={styles.textAmount}>
-                    {totalBalance > 0 ? formatAmount(totalBalance) : "---------" }
-                </Text>
+                <View style={styles.rowDetailsPicker}>
+                    <View style={styles.detailsContainer}>
+                        <Text style={styles.textDetails}>You can view your overall finances here.</Text>
+                    </View>
+                    <View style={styles.wrapperPicker}>
+                        <RNPickerSelect
+                            onValueChange={(value) => setSelectedPeriod(value)}
+                            items={[
+                                { label: 'Overall', value: 'overall' },
+                                { label: 'Daily', value: 'daily' },
+                                { label: 'Monthly', value: 'monthly' },
+                                { label: 'Yearly', value: 'yearly' }
+                            ]}
+                            value={selectedPeriod}
+                            placeholder={{ label: "Select period", value: null }}
+                            style={styles.picker}
+                        />
+                    </View>
+                </View>
                 
-                <PieChart
-                    data={pieData}
-                    width={width - 45}  
-                    height={220}  
-                    chartConfig={{
-                        backgroundColor: '#e26a00',
-                        backgroundGradientFrom: '#fb8c00',
-                        backgroundGradientTo: '#ffa726',
-                        decimalPlaces: 0, 
-                        color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
-                        style: {
-                            borderRadius: 16
-                        },
-                    }}
-                    accessor="population"
-                    backgroundColor="transparent"
-                    paddingLeft="10" 
-                    chartLabel={(value) => `${value.toFixed(2)}%`}
-                />
-            </View>
+                <View style={styles.pieContainer}>
+                    {pieData.length > 0 && pieData.some(item => item.population > 0) && (
+                        <Text style={styles.textTotal}>Total Income</Text>
+                    )}
 
+                    {loadingBalances ? (
+                        <ActivityIndicator size={35} color="#4CAF50" style={styles.loadingBalances} />
+                    ) : (
+                        <>
+                            {pieData.length > 0 && pieData.some(item => item.population > 0) ? (
+                                <>
+                                    <Text style={styles.textAmount}>
+                                        {`${formatAmount(calculateTotals(selectedBalances).netBalance)}`}
+                                    </Text>
+                                    <PieChart
+                                        data={pieData}
+                                        width={width - 45}  
+                                        height={220}  
+                                        chartConfig={{
+                                            backgroundColor: '#e26a00',
+                                            backgroundGradientFrom: '#fb8c00',
+                                            backgroundGradientTo: '#ffa726',
+                                            decimalPlaces: 0, 
+                                            color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+                                            style: {
+                                                borderRadius: 16
+                                            },
+                                        }}
+                                        accessor="population"
+                                        backgroundColor="transparent"
+                                        paddingLeft="10" 
+                                        chartLabel={(value) => `${value.toFixed(2)}%`}
+                                    />
+                                </>
+                            ) : (
+                                <Text style={styles.noDataText}>No data available for the selected period.</Text>
+                            )}
+                        </>
+                    )}
+                </View>
         </View>
 
         <View style={styles.overviewContainer}>
             <View style={styles.rowOverview}>
                 <Text style={styles.titleOverview}>Overview Balance</Text>
-                <TouchableOpacity onPress={() => setShowInfoMessage((prev) => !prev)}>
-                    <AntDesign name="questioncircleo" size={14} color="black"/>
-                </TouchableOpacity>
             </View>
 
             <View style={styles.detailsOverviewContainer}>
@@ -647,24 +549,38 @@ const ProductScreen = ({ route }) => {
                 {selectedBalances.length === 0 ? (
                     <Text style={styles.noDataText}>No balance created.</Text>
                 ) : (
-                    <SwipeableBalanceItem 
-                        totalIncome={totalIncome} 
-                        totalExpense={totalExpense} 
-                        totalSaving={totalSaving} 
-                        totalInvestment={totalInvestment} 
-                        totalBalance={totalBalance} 
-                    />
+                    selectedBalances.slice(0, showAllBalances ? selectedBalances.length : 4).map((group) => (
+                        <View key={group.overview_balance_id}>
+                            <SwipeableBalanceItem 
+                                balance={group.balances[0]} 
+                                totalIncome={group.totalIncome}
+                                totalExpense={group.totalExpense}
+                                totalSaving={group.totalSaving}
+                                totalInvestment={group.totalInvestment}
+                                totalBalance={group.totalIncome - group.totalExpense} 
+                                handleDeleteBalance={handleDeleteBalance}
+                            />
+                        </View>
+                    ))
                 )}
-            </View>
-            
+
+                {selectedBalances.length > 4 && !showAllBalances && (
+                    <TouchableOpacity onPress={() => setShowAllBalances(true)} style={styles.showMoreButton}>
+                        <Text style={styles.showMoreText}>Show More</Text>
+                    </TouchableOpacity>
+                )}
+
+                {showAllBalances && (
+                    <TouchableOpacity onPress={() => setShowAllBalances(false)} style={styles.showLessButton}>
+                        <Text style={styles.showLessText}>Show Less</Text>
+                    </TouchableOpacity>
+                )}
+            </View>   
         </View>
 
         <View style={styles.tagContainer}>
             <View style={styles.rowTag}>
                 <Text style={styles.titleTag}>Tags for Monthly Budget</Text>
-                <TouchableOpacity onPress={() => setShowInfoMessage((prev) => !prev)}>
-                    <AntDesign name="questioncircleo" size={14} color="black" />
-                </TouchableOpacity>
             </View>
 
             <View style={styles.detailsTagContainer}>
@@ -695,42 +611,6 @@ const ProductScreen = ({ route }) => {
             
         </View>
 
-        <View style={styles.financeContainer}>
-            <View style={styles.rowFinance}>
-                <Text style={styles.title}>Finance Log</Text>
-                <TouchableOpacity onPress={() => setShowInfoMessage((prev) => !prev)}>
-                    <AntDesign name="questioncircleo" size={14} color="black" />
-                </TouchableOpacity>
-            </View>
-
-            <View style={styles.detailsFinanceContainer}>
-                <Text style={styles.textFinanceDetails}>You can create to get a detailed record of all your transactions.</Text>
-            </View>
-
-            <View style={styles.placeholderLogContainer}>
-                {selectedAccounts.length === 0 ? (
-                    <Text style={styles.noDataText}>No accounts selected.</Text>
-                ) : (
-                    selectedAccounts.slice(0, showAllLogs ? selectedAccounts.length : 4).map((account, index) => (
-                        <SwipeableItem key={index} accountName={account} handleDelete={handleDelete} />
-                    ))
-                )}
-            </View>
-
-            {selectedAccounts.length > 4 && !showAllLogs && (
-                <TouchableOpacity onPress={() => setShowAllLogs(true)} style={styles.showMoreButton}>
-                    <Text style={styles.showMoreText}>show more</Text>
-                </TouchableOpacity>
-            )}
-
-            {showAllLogs && (
-                <TouchableOpacity onPress={() => setShowAllLogs(false)} style={styles.showLessButton}>
-                    <Text style={styles.showLessText}>show less</Text>
-                </TouchableOpacity>
-            )}
-        </View>
-
-
         <View style={styles.lineContainer}>
             <View style={[styles.grandline,{ flex: 1 } ]}/>
         </View>
@@ -745,27 +625,7 @@ const ProductScreen = ({ route }) => {
             <TouchableOpacity style={styles.createButton} onPress={() => navigation.navigate('Tag')}>
                 <Text style={styles.createText}>Create tags</Text>
             </TouchableOpacity>
-
-            <TouchableOpacity style={styles.createButton} onPress={() => navigation.navigate('FinancialLog')}>
-                <Text style={styles.createText}>Create finance log</Text>
-            </TouchableOpacity>
         </View>
-
-        <Modal visible={showDeleteConfirmationModal} transparent={true} animationType="fade">
-            <View style={styles.modalContainer}>
-                <View style={styles.modalContent}>
-                    <Text style={styles.modalTitle}>Deleting this account could lead to deleting all your entries. Are you sure you want to proceed?</Text>
-                    <View style={styles.modalButtons}>
-                        <TouchableOpacity style={styles.modalButton} onPress={handleDelete}>
-                            <Text style={styles.modalButtonTextYes}>Yes</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={styles.modalButton} onPress={() => setShowDeleteConfirmationModal(false)}>
-                            <Text style={styles.modalButtonTextNo}>No</Text>
-                        </TouchableOpacity>
-                    </View>
-                </View>
-            </View>
-        </Modal>
 
     </ScrollView>
   );
@@ -916,10 +776,13 @@ const styles = StyleSheet.create({
         padding: 10,
         marginTop: 10,
         justifyContent: 'center',
-        height: 280,
+        height: 'auto',
+        position: 'relative',
     },
     textTotal: {
-        marginTop: 10,
+        position: 'absolute',
+        top: 1,
+        left: 10,
         fontSize: 12,
         fontFamily: 'regular',
     },
@@ -1001,7 +864,7 @@ const styles = StyleSheet.create({
         color: 'blue',
     },
     noDataText: {
-        marginTop: 20,
+        margin: 20,
         textAlign: 'center',
         fontSize: 14,
         fontFamily: 'regular',
@@ -1052,7 +915,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 5,
     },
     productAccountText: {
-        fontSize: 16,
+        fontSize: 14,
         color: 'white',
         fontFamily: 'medium',
     },

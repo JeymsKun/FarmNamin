@@ -37,53 +37,37 @@ const AdditionalDetailsScreen = ({ route, navigation }) => {
   };
 
   const showInfo = (option) => {
-    let message = '';
-  
-    switch (option) {
-      case 'Freshness Duration':
-        message = 'Indicate how long the product stays fresh.\n\nSample: 2 days.';
-        break;
-      case 'Maximum Duration':
-        message = 'The maximum time the product remains consumable.\n\nSample: 3 days.';
-        break;
-      case 'Date & Time Harvest':
-        message = 'Provide the specific date and time the product was harvested.\n\nSample: August 25, 2024, 8:00 A.M.';
-        break;
-      case 'Harvest Method':
-        message = 'How the produce was harvested.\n\nSample: Hand-picked.';
-        break;
-      case 'Soil Type':
-        message = 'Type of soil used for cultivation.\n\nSample: Rich loamy soil.';
-        break;
-      case 'Water Source':
-        message = 'Source of water used for irrigation.\n\nSample: Rainwater.';
-        break;
-      case 'Irrigation Method':
-        message = 'Method used for watering crops.\n\nSample: Drip irrigation system.';
-        break;
-      case 'Crop Rotation Practice':
-        message = 'Description of crop rotation to improve soil health.\n\nSample: Planted with beans to improve soil.';
-        break;
-      case 'Use of Fertilizers':
-        message = 'Types of fertilizers used.\n\nSample: Planted with beans to improve soil.';
-        break;
-      case 'Pest Control Measures':
-        message = 'Methods used to manage pests.\n\nSample: Using natural predators.';
-        break;
-      case 'Presence of GMOs':
-        message = 'Whether the produce is genetically modified.\n\nSample: Guaranteed non-GMO produce.';
-        break;
-      case 'Organic Certification':
-        message = 'Certification status for organic produce.\n\nSample: Certified Organic by OCCP.';
-        break;
-      default:
-        message = 'No additional information available.';
-    }
-  
+    const messages = {
+        'Freshness Duration': 'Indicate how long the product stays fresh.\n\nSample: 2 days.',
+        'Maximum Duration': 'The maximum time the product remains consumable.\n\nSample: 3 days.',
+        'Date & Time Harvest': 'Provide the specific date and time the product was harvested.\n\nSample: August 25, 2024, 8:00 A.M.',
+        'Harvest Method': 'How the produce was harvested.\n\nSample: Hand-picked.',
+        'Soil Type': 'Type of soil used for cultivation.\n\nSample: Rich loamy soil.',
+        'Water Source': 'Source of water used for irrigation.\n\nSample: Rainwater.',
+        'Irrigation Method': 'Method used for watering crops.\n\nSample: Drip irrigation system.',
+        'Crop Rotation Practice': 'Description of crop rotation to improve soil health.\n\nSample: Planted with beans to improve soil.',
+        'Use of Fertilizers': 'Types of fertilizers used.\n\nSample: Organic compost.',
+        'Pest Control Measures': 'Methods used to manage pests.\n\nSample: Using natural predators.',
+        'Presence of GMOs': 'Whether the produce is genetically modified.\n\nSample: Guaranteed non-GMO produce.',
+        'Organic Certification': 'Certification status for organic produce.\n\nSample: Certified Organic by OCCP.',
+        'Storage Conditions': 'How the product should be stored.\n\nSample: Keep in a cool, dry place.',
+        'Ideal Storage Temperature': 'Recommended temperature for storage.\n\nSample: 4°C to 6°C.',
+        'Packaging Type': 'Type of packaging used.\n\nSample: Vacuum-sealed bag.',
+        'Community Support Projects': 'Projects supported by the farming community.\n\nSample: Local school sponsorship.',
+        'Cooking Recommendations': 'Suggestions on how to cook the product.\n\nSample: Best grilled or roasted.',
+        'Best Consumption Period': 'The ideal time to consume the product.\n\nSample: Within 2 days of purchase.',
+        'Special Handling Instructions': 'Any special instructions for handling.\n\nSample: Handle with care to avoid bruising.',
+        'Farm History': 'Historical information about the farm.\n\nSample: Established in 1920.',
+        'Use of Indigenous Knowledge': 'Utilization of traditional farming methods.\n\nSample: Use of traditional planting techniques.',
+        'Use of Technology in Farming': 'Technology used in farming practices.\n\nSample: Precision agriculture tools.',
+    };
+
+    const message = messages[option] || 'No additional information available.';
+
     setAlertTitle(option);
     setAlertMessage(message);
     setAlertVisible(true);
-  };
+};
   
 
   const handleSearch = () => {

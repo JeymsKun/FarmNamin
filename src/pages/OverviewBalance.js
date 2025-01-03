@@ -1,7 +1,6 @@
-import React, { useState, useEffect, useContext } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Dimensions, StatusBar, TextInput, ScrollView, Modal, Animated, ActivityIndicator } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Dimensions, StatusBar, TextInput, ScrollView, Modal, ActivityIndicator } from 'react-native';
 import { BackHandler } from 'react-native';
-import { format } from 'date-fns';
 import AntDesign from '@expo/vector-icons/AntDesign';
 import Feather from '@expo/vector-icons/Feather';
 import CustomAlert from '../support/CustomAlert';
@@ -11,14 +10,9 @@ import { useAuth } from '../hooks/useAuth';
 
 const { width, height } = Dimensions.get('window');
 
-const MAX_LENGTH = 100;
-
-export default function OverviewBalance({ navigation, route }) {
-    const { balance } = route.params || {};
+export default function OverviewBalance({ navigation }) {
     const { user } = useAuth(); 
     const userId = user?.id_user;
-    // const { balanceToEdit } = route.params || {};
-    // const [description, setDescription] = useState(balanceToEdit ? balanceToEdit.description : '');
     const [description, setDescription] = useState('');
     const [amount, setAmount] = useState('');
     const [type, setType] = useState('');
@@ -31,9 +25,6 @@ export default function OverviewBalance({ navigation, route }) {
     const [isConfirmationModalVisible, setIsConfirmationModalVisible] = useState(false);
     const [balanceDeleteConfirmationVisible, setBalanceDeleteConfirmationVisible] = useState(false);
     const [balanceConfirmationVisible, setBalanceConfirmationVisible] = useState(false);
-    // const { balance, setBalance } = useSchedules();
-    // const [isUpdate, setIsUpdate] = useState(!!balanceToEdit);  
-    const [isUpdate, setIsUpdate] = useState(null);
     const [overviewBalance, setOverviewBalance] = useState([]);
     const [totalIncome, setTotalIncome] = useState(0);
     const [totalExpense, setTotalExpense] = useState(0);
@@ -41,6 +32,15 @@ export default function OverviewBalance({ navigation, route }) {
     const [totalInvestment, setTotalInvestment] = useState(0);
     const [totalBalance, setTotalBalance] = useState(0);
     const [isNetBalanceVisible, setIsNetBalanceVisible] = useState(false);
+    const [alertVisible, setAlertVisible] = useState(false);
+    const [alertMessage, setAlertMessage] = useState('');
+    const [alertTitle, setAlertTitle] = useState('');
+
+    const showAlert = (title, message) => {
+        setAlertTitle(title);
+        setAlertMessage(message);
+        setAlertVisible(true);
+    };
 
     useEffect(() => {
         const netBalance = totalIncome - totalExpense;
@@ -56,7 +56,7 @@ export default function OverviewBalance({ navigation, route }) {
 
     useEffect(() => {
       const backAction = () => {
-          navigation.navigate('TraceAndTrace'); 
+          navigation.navigate('TraceAndTrack'); 
           return true; 
       };
   
@@ -105,85 +105,46 @@ export default function OverviewBalance({ navigation, route }) {
         </View>
     ); 
     
-    const handleConfirm = () => {
-      setIsConfirmationModalVisible(false);
-      setIsLoading(true);
-    
-      setTimeout(() => {
-        setIsLoading(false);
-
-        const updatedBalance = {
-          id: isUpdate, 
-          amount: amount,
-          description: description,
-          type: type,
-
-        };
-
-        if (isUpdate) {
-          setSchedules((prevBalance) => 
-            prevBalance.map((balance) =>
-                balance.id === balanceToEdit.id ? updatedBalance : balance
-            )
-          );
-        } else {
-
-          setSchedules((prevBalance) => [...prevBalance, updatedBalance]);
-        }
-    
-        navigation.navigate('TraceAndTrace');
-      }, 3000);
-    };
-    
     const handleCancel = () => {
         setIsConfirmationModalVisible(false); 
     };
 
     const handleDone = async () => {
-        if (!userId) {
-            Alert.alert('Error', 'User ID is not available. Please log in.');
-            return;    
-        }   else {
-            try {
+        try {
 
-                setIsLoading(true);
+            setIsLoading(true);
 
-                const mainTransactionsId = uuidv4();
+            const mainTransactionsId = uuidv4();
 
-                const newTransactions = overviewBalance.map(transaction => ({
-                    id_user: userId,
-                    overview_balance_id: mainTransactionsId,
-                    description: transaction.description.trim(),
-                    amount: transaction.amount,
-                    type: transaction.type.trim(),
-                }));
-    
-                setIsLoading(true);
-                console.log('Inserting the following transactions:', newTransactions);
-    
-                const { data, error } = await supabase
-                    .from('overviewbalance')
-                    .insert(newTransactions);
-    
-                if (error) {
-                    console.error('Failed to save transactions to Supabase', error.message);
-                    setIsLoading(false);
-                    return;
-                }
+            const newTransactions = overviewBalance.map(transaction => ({
+                id_user: userId,
+                overview_balance_id: mainTransactionsId,
+                description: transaction.description.trim(),
+                amount: transaction.amount,
+                type: transaction.type.trim(),
+            }));
 
-                console.log('Overview balance successfully added', data);
+            setIsLoading(true);
 
-                console.log('Transaction group added to Supabase');
-    
+            const { data, error } = await supabase
+                .from('overviewbalance')
+                .insert(newTransactions);
+
+            if (error) {
+                console.error('Failed to save transactions to Supabase', error.message);
                 setIsLoading(false);
-                setIsConfirmationModalVisible(false);
-    
-    
-            } catch (err) {
-                console.error(err);
-                setIsLoading(false);
+                return;
             }
+
+            setIsLoading(false);
+            setIsConfirmationModalVisible(false);
+
+            navigation.navigate('TraceAndTrack');
+        } catch (err) {
+            console.error(err);
+            setIsLoading(false);
         }
+    
     };
     
   
@@ -219,13 +180,8 @@ export default function OverviewBalance({ navigation, route }) {
         setTypeFocused(false);
     };
 
-    const handleAddNewBalance = () => {
-        setBalanceConfirmationVisible(true);
-    };
-
     const confirmAddNewBalance = () => {
         setBalanceConfirmationVisible(false);
-        // setIsUpdate(false);
         setAmount('');
         setDescription('');
         setType('');
@@ -249,7 +205,6 @@ export default function OverviewBalance({ navigation, route }) {
             'invest': 'Investment', 
             'investment': 'Investment',
             'inv': 'Investment', 
-            // Add more mappings as needed
         };
     
         return typeMapping[inputType.toLowerCase()] || inputType; 
@@ -261,6 +216,13 @@ export default function OverviewBalance({ navigation, route }) {
         const parsedAmount = parseFloat(amount.trim());
     
         if (!trimmedDescription || !trimmedType || isNaN(parsedAmount) || parsedAmount <= 0) {
+            return; 
+        }
+
+        const validTypes = ['Income', 'Expense', 'Saving', 'Investment'];
+
+        if (!trimmedDescription || !validTypes.includes(trimmedType) || isNaN(parsedAmount) || parsedAmount <= 0) {
+            showAlert('Invalid Type Format:', 'Please ensure that the type format is followed.');
             return; 
         }
     
@@ -304,16 +266,8 @@ export default function OverviewBalance({ navigation, route }) {
             <StatusBar hidden={false} />
 
             <View style={styles.balanceContainer}>
-                <Text style={styles.sectionTitle}>Create Overview Balance</Text>
-
                 <View style={styles.wrapperButtons}>
-                    <TouchableOpacity style={styles.addButton} onPress={handleAddNewBalance}>
-                        <View style={styles.iconTextRow}>
-                            <AntDesign name="pluscircleo" size={20} color="black" />
-                            <Text style={styles.buttonText}>Add New Balance</Text>
-                        </View>
-                    </TouchableOpacity>
-
+                    <Text style={styles.sectionTitle}>Create Overview Balance</Text>
                     <TouchableOpacity style={styles.deleteButton} onPress={handleDeleteBalance}>
                         <View style={styles.iconTextRow}>
                             <AntDesign name="delete" size={20} color="black" />
@@ -423,7 +377,6 @@ export default function OverviewBalance({ navigation, route }) {
 
         </View>
 
-            {/* Done Button at the bottom */}
             <View style={styles.footerButtons}>
                 <TouchableOpacity style={styles.doneButton} onPress={handleDone}>
                 <Text style={styles.doneText}>Done</Text>
@@ -433,12 +386,10 @@ export default function OverviewBalance({ navigation, route }) {
 
         </ScrollView>
 
-
-        {/* Confirmation Modal */}
         <Modal visible={isConfirmationModalVisible} transparent={true} animationType="fade">
             <View style={styles.modalContainer}>
                 <View style={styles.modalContent}>
-                    <Text style={styles.modalTitle}>Are you sure you want to {isUpdate ? 'update' : 'create'} this overview balance?</Text>
+                    <Text style={styles.modalTitle}>Are you sure you want to create this overview balance?</Text>
                     <View style={styles.modalButtons}>
                     <TouchableOpacity style={styles.modalButton}>
                         <Text style={styles.modalButtonTextYes}>Yes</Text>
@@ -458,17 +409,15 @@ export default function OverviewBalance({ navigation, route }) {
             onClose={() => setIsAlertVisible(false)}
         />
 
-        {/* Loading Modal */}
         <Modal visible={isLoading} transparent={true} animationType="fade">
             <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0, 0, 0, 0.5)' }}>
                 <View style={{ padding: 20, borderRadius: 10, alignItems: 'center' }}>
                     <ActivityIndicator size={50} color="#4CAF50" />
-                    <Text style={{ marginTop: 10, fontFamily: 'medium', color: 'white' }}>{isUpdate ? 'Updating your overview balance...' : 'Calculating your overview balance...'}</Text>
+                    <Text style={{ marginTop: 10, fontFamily: 'medium', color: 'white' }}>Calculating your overview balance...</Text>
                 </View>
             </View>
         </Modal>
 
-        {/* Add New Balance Confirmation Modal */}
         <Modal visible={balanceConfirmationVisible} transparent={true} animationType="fade">
             <View style={styles.modalContainer}>
                 <View style={styles.modalContent}>
@@ -485,7 +434,6 @@ export default function OverviewBalance({ navigation, route }) {
             </View>
         </Modal>
 
-        {/* Delete Balance Confirmation Modal */}
         <Modal visible={balanceDeleteConfirmationVisible} transparent={true} animationType="fade">
             <View style={styles.modalContainer}>
                 <View style={styles.modalContent}>
@@ -501,6 +449,13 @@ export default function OverviewBalance({ navigation, route }) {
                 </View>
             </View>
         </Modal>
+
+        <CustomAlert 
+          visible={alertVisible} 
+          title={alertTitle} 
+          message={alertMessage} 
+          onClose={() => setAlertVisible(false)} 
+        />
     </>
   );
 }
@@ -564,15 +519,17 @@ const styles = StyleSheet.create({
     },
     balanceContainer: {
         marginTop: 50,
+        padding: 5,
     },
     sectionTitle: {
-        fontSize: 16,
+        fontSize: 14,
         fontFamily: 'bold',
         color: 'black',
     },
     wrapperButtons: {
         flexDirection: 'row',
         justifyContent: 'space-between',
+        alignItems: 'center',
     },
     addButton: {
         paddingVertical: 10,

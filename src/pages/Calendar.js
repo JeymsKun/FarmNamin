@@ -1,27 +1,22 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, Dimensions, StyleSheet, ActivityIndicator, Image, StatusBar, TouchableOpacity, ScrollView } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, Dimensions, StyleSheet, Image, StatusBar, TouchableOpacity, ScrollView } from 'react-native';
 import Carousel from 'react-native-reanimated-carousel';
-import { configureReanimatedLogger, ReanimatedLogLevel } from 'react-native-reanimated';
 import PlantingData from '../support/PlantingData';
 import Feather from '@expo/vector-icons/Feather';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { format, parseISO } from 'date-fns';
 import { Calendar } from 'react-native-calendars';
 import RNPickerSelect from 'react-native-picker-select';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../hooks/useAuth'; 
-import { supabase } from '../backend/supabaseClient';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { fetchSchedules, deleteSchedule, checkAndDeleteExpiredSchedules } from '../utils/api';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
+import useRealTimeUpdates from '../hooks/useRealTimeUpdates';
 
 const { width } = Dimensions.get('window');
-
-configureReanimatedLogger({
-    level: ReanimatedLogLevel.warn,
-    strict: false, 
-});
 
 const CalendarScreen = () => {
     const { user } = useAuth();
@@ -32,105 +27,38 @@ const CalendarScreen = () => {
     const [year, setYear] = useState('2024');
     const [selectedDateCalendar, setSelectedDateCalendar] = useState('');
     const [showCalendar, setShowCalendar] = useState(false);
+    const queryClient = useQueryClient();
     const [selectedSchedule, setSelectedSchedule] = useState(null);
-    const [selectedSchedules, setSelectedSchedules] = useState([]);
-    const subscriptionRef = useRef(null);
+
+    useRealTimeUpdates(user?.id_user);
+
+    const { data: selectedSchedules = [], refetch } = useQuery({
+        queryKey: ['schedules', user?.id_user],
+        queryFn: () => fetchSchedules(user.id_user),
+        enabled: !!user,
+    });
+
+    const deleteScheduleMutation = useMutation({
+        mutationFn: deleteSchedule,
+        onSuccess: () => {
+            queryClient.invalidateQueries(['schedules', user?.id_user]);
+        },
+    });
 
     useEffect(() => {
-          if (user) {
-            console.log('Current user navigating to Calendar Screen:', user);
-            loadData(); 
-          }
-      }, [user]); 
-
-    const loadData = async () => {
-        if (!user) return;
-
-        try {
-            const { data, error } = await supabase
-                .from('schedules')
-                .select('id, description, date, start_time, end_time')
-                .eq('id_user', user.id_user); 
-    
-            if (error) {
-                console.error('Error fetching schedules:', error);
-                return;
-            }
-
-            console.log('Raw fetched schedules data:', data);
-    
-            if (data && data.length > 0) {
-                
-                setSelectedSchedules(data);
-            } else {
-                console.log('No schedule found in the database.');
-            }
-        } catch (err) {
-            console.error('Unexpected error loading data:', err);
+        if (selectedSchedules.length > 0) {
+            checkAndDeleteExpiredSchedules(selectedSchedules);
         }
-    };
-        
-    const listenForChanges = async () => {
-        if (subscriptionRef.current) return;
-        try {
-            const subscription = supabase
-                .channel('database_changes')
-                .on('postgres_changes', { event: '*', schema: 'public', table: 'schedules' }, async (payload) => {
-                    console.log('Database change detected:', payload);
-                    await loadData();  
-                })
-                .subscribe((status) => {
-                    if (status === 'SUBSCRIBED') {
-                        console.log('Successfully subscribed to schedule changes.');
-                    }
-                });
-            return subscription;
-        } catch (err) {
-            console.error('Error subscribing to database changes:', err);
-        }
-    };
-        
-    useEffect(() => {
-        loadData().then(() => {
-            listenForChanges();
-        });
-    
-        return () => {
-            if (subscriptionRef.current) {
-                supabase.removeSubscription(subscriptionRef.current);
-                subscriptionRef.current = null;
-            }
-        };
-    }, []);
-
-    const loadSelectedSchedules = async () => {
-        try {
-            const storedSchedules = await AsyncStorage.getItem('selectedSchedules');
-            if (storedSchedules) {
-                const Schedules = JSON.parse(storedSchedules);
-                console.log('Loaded Schedule:', Schedules);
-                setSelectedSchedules(Schedules);
-            }
-        } catch (error) {
-            console.error('Failed to load selected schedule:', error);
-        }
-    };
-
-    const saveSelectedSchedules = async (Schedules) => {
-        try {
-            await AsyncStorage.setItem('selectedSchedules', JSON.stringify(Schedules));
-        } catch (error) {
-            console.error('Failed to save selected schedule:', error);
-        }
-    };
-
-    useEffect(() => {
-        loadSelectedSchedules(); 
-    }, []);
-
-    useEffect(() => {
-        saveSelectedSchedules(selectedSchedules); 
     }, [selectedSchedules]);
+
+    useFocusEffect(
+        React.useCallback(() => {
+            if (user) {
+
+                refetch(); 
+            }
+        }, [user])
+    ); 
 
     const months = [
         'January', 'February', 'March', 'April', 'May', 'June', 
@@ -229,29 +157,10 @@ const CalendarScreen = () => {
         }
     });
     
-    const handleArrowClick = (schedule) => {
-        navigation.navigate('Schedule', { scheduleToEdit: schedule });
-    };
 
     const handleDelete = async (scheduleId) => {
         if (!scheduleId) return;
-        
-        try {
-            const { error } = await supabase
-                .from('schedules')
-                .delete()
-                .eq('id', scheduleId); 
-
-            if (error) {
-                console.error('Error deleting schedule records:', error);
-                return;
-            }
-
-            setSelectedSchedules((prevSchedules) => prevSchedules.filter(schedule => schedule.id !== scheduleId));
-
-        } catch (err) {
-            console.error('Unexpected error deleting schedule records:', err);
-        }
+        deleteScheduleMutation.mutate(scheduleId);
     };
     
     const SwipeableItem = ({ schedule }) => {
@@ -289,7 +198,7 @@ const CalendarScreen = () => {
             <View style={styles.swipeableContainer}>
                 <GestureDetector gesture={panGesture}>
                     <Animated.View style={[styles.swipeableItem, animatedStyle]}>
-                        {/* Schedule Item */}
+
                         <View style={styles.scheduleItem}>
                             <View style={styles.descriptionRow}>
                                 <Text
@@ -301,16 +210,12 @@ const CalendarScreen = () => {
                                     {schedule.description}
                                 </Text>
     
-                                <TouchableOpacity onPress={() => handleArrowClick(schedule)}>
-                                    <MaterialIcons name="arrow-forward-ios" size={24} color="white" />
-                                </TouchableOpacity>
                             </View>
     
                             <View style={styles.detailLine} />
                             <View style={styles.dateTimeRow}>
                                 <Text style={styles.details}>{format(new Date(schedule.date), 'MMMM dd, yyyy')}</Text>
 
-                                {/* Display start_time and end_time if available */}
                                 {schedule.start_time && schedule.end_time ? (
                                     <Text style={styles.details}>
                                         {`${formatTime(schedule.start_time)} - ${formatTime(schedule.end_time)}`}
@@ -322,8 +227,7 @@ const CalendarScreen = () => {
                                 ) : null}
                             </View>
                         </View>
-    
-                        {/* Delete Button (appears after swipe) */}
+
                         <Animated.View style={[styles.deleteButton]}>
                             <TouchableOpacity onPress={() => handleDelete(schedule.id)}>
                                 <MaterialIcons name="delete" size={24} color="white" />
@@ -341,8 +245,6 @@ const CalendarScreen = () => {
     return (
         <ScrollView style={styles.container} scrollEventThrottle={16}>
             <StatusBar hidden={false} />
-
-            {/* Header */}
             <View style={styles.header}>
                 <View style={styles.headerTitle}>
                     <Text style={styles.headerTitleText}>Hello, {user?.first_name.trim() || 'User'}!</Text>
@@ -352,7 +254,6 @@ const CalendarScreen = () => {
                 </View>
             </View>
 
-            {/* Carousel Section */}
             <View style={styles.carouselSection}>
 
                 <View style={styles.titleContainer}>
@@ -375,7 +276,7 @@ const CalendarScreen = () => {
                     onSnapToItem={(index) => setActiveIndex(index)}
                     renderItem={({ item }) => (
                         <View style={styles.carouselItem}>
-                            <Image source={{ uri: item.imageUrl }} style={styles.carouselImage} resizeMode="cover"/>
+                            <Image source={{ uri: item.imageUrl }} style={styles.carouselImage} resizeMode="contain"/>
                         </View>
                     )}
                 />
@@ -390,7 +291,6 @@ const CalendarScreen = () => {
                     </View>
                 </View>
 
-                {/* Schedule Container */}
                 <View style={styles.scheduleContainer}>
                     <Text style={styles.scheduleText}>Your Schedule</Text>
 
@@ -428,9 +328,9 @@ const CalendarScreen = () => {
                     <View style={styles.pickerWrapper}>
                         <RNPickerSelect
                             onValueChange={onYearChange}
-                            items={[...Array(3000 - 2024 + 1)].map((_, index) => ({
-                                label: String(2024 + index),
-                                value: String(2024 + index),
+                            items={[...Array(3000 - 2025 + 1)].map((_, index) => ({
+                                label: String(2025 + index),
+                                value: String(2025 + index),
                             }))}
                             style={styles.picker}
                             value={year}
@@ -443,14 +343,13 @@ const CalendarScreen = () => {
 
                 </View>
 
-                {/* Placeholder with conditional Calendar */}
                 <View style={styles.placeholderContainer}>
                     {!showCalendar ? (
                         <Text style={styles.placeholderText}>Calendar will appear here.</Text>
                         ) : (
                             <Calendar
                                 current={`${year}-${monthNumbers[month]}-01`}
-                                minDate={'2024-01-01'}
+                                minDate={'2025-01-01'}
                                 maxDate={'3000-12-31'}
                                 onDayPress={onDayPress}
                                 markedDates={markedDates}
@@ -466,7 +365,7 @@ const CalendarScreen = () => {
                                     monthTextColor: 'black',
                                     textSectionTitleColor: '#585858',
                                     textDayFontFamily: 'regular',
-                                    textMonthFontFamily: 'bold',
+                                    textMonthFontFamily: 'medium',
                                     textDayHeaderFontFamily: 'regular',
                                     textDayFontSize: 11,
                                     textMonthFontSize: 12,
@@ -506,7 +405,6 @@ const CalendarScreen = () => {
                                         </>
                                     )}
 
-                                    {/* Display start_time and end_time if available */}
                                     {selectedSchedule.start_time && selectedSchedule.end_time ? (
                                         <Text style={styles.scheduleDetails}>
                                             {`  ${formatTime(selectedSchedule.start_time)} - ${formatTime(selectedSchedule.end_time)}`}
@@ -517,7 +415,6 @@ const CalendarScreen = () => {
                                         </Text>
                                     ) : null}
 
-                                    {/* Display event description for events */}
                                     {selectedSchedule.descriptionEvent && (
                                         <Text style={styles.scheduleEventDetails}>
                                             This date is marked for event: 
@@ -558,7 +455,7 @@ const styles = StyleSheet.create({
         marginBottom: 1,             
     },
     headerTitleText: {
-        fontSize: 14,
+        fontSize: 13,
         fontFamily: 'regular',
     },
     headerGreet: {
@@ -574,15 +471,15 @@ const styles = StyleSheet.create({
         marginBottom: 10,      
     },
     titleText: {
-        fontSize: 16,
-        fontFamily: 'bold',
+        fontSize: 15,
+        fontFamily: 'medium',
         textAlign: 'center', 
         marginBottom: 0,
     },
     titleTextBy: {
-        fontSize: 10,
+        fontSize: 9,
         color: '#4CAF50',
-        fontFamily: 'regular',
+        fontFamily: 'medium',
         textAlign: 'center',   
         marginTop: -5, 
     },
@@ -621,8 +518,8 @@ const styles = StyleSheet.create({
     },
     dot: {
         margin: 3,
-        width: 10,
-        height: 10,
+        width: 8,
+        height: 8,
         borderRadius: 5,
         backgroundColor: '#4CAF50',
     },
@@ -633,7 +530,7 @@ const styles = StyleSheet.create({
     },  
     scheduleText: {
         fontSize: 14,
-        fontFamily: 'bold',
+        fontFamily: 'medium',
     },
     noSchedulesContainer: {
         padding: 20,
@@ -720,7 +617,7 @@ const styles = StyleSheet.create({
     },
     textCalendar: {
         fontSize: 14,
-        fontFamily: 'bold',
+        fontFamily: 'medium',
     },
     row: {
         flexDirection: 'row',

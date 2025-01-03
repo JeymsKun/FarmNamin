@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, Text, Dimensions, StyleSheet, ActivityIndicator, Image, StatusBar, TouchableOpacity, ScrollView, Modal, FlatList } from 'react-native';
+import { View, Text, Dimensions, StyleSheet, ActivityIndicator, Image, StatusBar, TouchableOpacity, ScrollView, Alert, FlatList } from 'react-native';
 import Carousel from 'react-native-reanimated-carousel';
 import { useFocusEffect } from '@react-navigation/native';
+import { configureReanimatedLogger, ReanimatedLogLevel } from 'react-native-reanimated';
 import Data from '../support/Data';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import AntDesign from 'react-native-vector-icons/AntDesign';
@@ -10,25 +11,33 @@ import { format, parseISO } from 'date-fns'
 import 'react-native-get-random-values'; 
 import { useAuth } from '../hooks/useAuth'; 
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchPosts, fetchProducts, fetchNewOrders } from '../utils/api';
+import { fetchPosts, fetchProducts, fetchNewOrders, deletePost, deleteProduct, deleteFavoritesByProductId } from '../utils/api';
 import { setSelectedPost, setSelectedProduct, clearSelectedPost, clearSelectedProduct } from '../store/productSlice';
 import { useQuery } from '@tanstack/react-query';
+import * as VideoThumbnails from 'expo-video-thumbnails';
+import Ionicons from 'react-native-vector-icons/Ionicons';
+import CustomAlert from '../support/CustomAlert';
+
+configureReanimatedLogger({
+  level: ReanimatedLogLevel.warn,
+  strict: false, 
+});
 
 class PostItem extends React.PureComponent {
   render() {
-    const { item, user, formatDate, toggleMenu, handleEdit, handleDeletePost, selectedPost } = this.props;
+    const { item, user, formatDate, toggleMenu, handleDeletePost, selectedPost } = this.props;
 
     return (
-      <View>
+      <View style={styles.postItem}>
         <View style={styles.postInfoContainer}>
           <Text style={styles.postInfo}>You • {formatDate(item.created_at)}</Text>
-          <TouchableOpacity onPress={() => toggleMenu(item)}>
-            <Icon name="dots-horizontal" size={25} color="black" />
+          <TouchableOpacity onPress={() => toggleMenu(item)} style={styles.dotsButton}>
+            <Icon name="dots-horizontal" size={25} color="#4CAF50" />
           </TouchableOpacity>
         </View>
 
         <Text style={styles.postLocation}>
-          Located in {item.location} • Contact Number #0{user?.phone_number || '------'}
+          Located in {item.location} • Contact Number #{user?.phone_number || '------'}
         </Text>
 
         {item.description && <Text style={styles.postTitle}>{item.description}</Text>}
@@ -79,67 +88,114 @@ class PostItem extends React.PureComponent {
         )}
         {selectedPost && selectedPost.id === item.id && (
           <View style={styles.inlineMenuContainer}>
-            <TouchableOpacity onPress={handleEdit} style={styles.inlineMenuItem}>
-              <Icon name="pencil" size={20} color="black" /> 
-              <Text style={styles.menuText}>Edit</Text>
-            </TouchableOpacity>
             <TouchableOpacity onPress={handleDeletePost} style={styles.inlineMenuItem}>
-              <Icon name="trash-can" size={20} color="black" /> 
+              <Icon name="trash-can" size={20} color="#4CAF50" /> 
               <Text style={styles.menuText}>Delete</Text>
             </TouchableOpacity>
           </View>
         )}
-        <View style={styles.line} />
       </View>
     );
   }
 }
 
-class ProductItem extends React.PureComponent {
+const thumbnailCache = {};
+
+class ProductItem extends React.Component {
+  state = {
+    thumbnail: null,
+  };
+
+  async componentDidMount() {
+    const { item } = this.props;
+    await this.generateThumbnail(item);
+  }
+
+  async generateThumbnail(item) {
+    const videoUri = item.videos?.[0];
+    if (videoUri) {
+      if (thumbnailCache[videoUri]) {
+        this.setState({ thumbnail: thumbnailCache[videoUri] });
+      } else {
+        try {
+          const { uri } = await VideoThumbnails.getThumbnailAsync(videoUri);
+          console.log("Generated thumbnail URI:", uri);
+          thumbnailCache[videoUri] = uri; 
+          this.setState({ thumbnail: uri });
+        } catch (error) {
+          console.error("Error generating thumbnail:", error);
+        }
+      }
+    }
+  }
+
+  shouldComponentUpdate(nextProps, nextState) {
+    return (
+      nextProps.item !== this.props.item || 
+      nextProps.selectedProduct !== this.props.selectedProduct ||
+      nextState.thumbnail !== this.state.thumbnail
+    );
+  }
+
   render() {
-    const { item, formatDate, formatPrice, toggleMenuProduct, selectedProduct, handleEditProduct, handleDeleteProduct } = this.props;
+    const { item, formatDate, formatPrice, toggleMenuProduct, selectedProduct, handleDeleteProduct } = this.props;
+    const { thumbnail } = this.state;
 
     return (
-      <View>
+      <View style={styles.productContainer}>
         <View style={styles.productMenuWrapper}>
           <Text style={styles.productDate}>Created on {formatDate(item.created_at)}</Text>
           <TouchableOpacity onPress={() => toggleMenuProduct(item)} style={styles.dotsButton}>
-            <Icon name="dots-horizontal" size={25} color="black" />
+            <Icon name="dots-horizontal" size={25} color="#4CAF50" />
           </TouchableOpacity>
         </View>
-        <Image
-          source={{ uri: item.images[0] }}
-          style={styles.productImage}
-          resizeMode="cover"
-        />
-        <View style={styles.productInfoContainer}>
-          <TouchableOpacity style={styles.productButton}>
-            <Text style={styles.productName}>{item.name}</Text>
-            <View style={styles.priceContainer}>
-              <Text style={styles.productPrice}>₱ {formatPrice(item.price)}</Text>
-              <Text style={styles.textBalls}>••••••</Text>
+
+        <View>
+          {thumbnail ? (
+            <View style={{ position: 'relative' }}>
+              <Image
+                source={{ uri: thumbnail }} 
+                style={styles.productImage}
+                resizeMode="cover"
+              />
+              <View style={styles.playButton}>
+                <Ionicons name="play-circle-outline" size={30} color="white" />
+              </View>
             </View>
-          </TouchableOpacity>
-        </View>
-        {selectedProduct && selectedProduct.id === item.id && (
-          <View style={styles.inlineMenuContainer}>
-            <TouchableOpacity onPress={handleEditProduct} style={styles.inlineMenuItem}>
-              <Icon name="pencil" size={20} color="black" />
-              <Text style={styles.menuText}>Edit</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={handleDeleteProduct} style={styles.inlineMenuItem}>
-              <Icon name="trash-can" size={20} color="black" />
-              <Text style={styles.menuText}>Delete</Text>
-            </TouchableOpacity>
+          ) : item.images?.[0] ? (
+            <Image
+              source={{ uri: item.images[0] }} 
+              style={styles.productImage}
+              resizeMode="cover"
+            />
+          ) : (
+            <View style={styles.noImageContainer}>
+              <Text style={styles.noImageText}>No Image Available</Text>
+            </View>
+          )}
+          <View style={styles.productInfoContainer}>
+            <View style={styles.productButton}>
+              <Text style={styles.productName}>{item.name}</Text>
+              <View style={styles.priceContainer}>
+                <Text style={styles.productPrice}>₱ {formatPrice(item.price)}</Text>
+              </View>
+            </View>
           </View>
-        )}
-        <View style={styles.productline} />
+          {selectedProduct && selectedProduct.id === item.id && (
+            <View style={styles.inlineMenuContainerProduct}>
+              <TouchableOpacity onPress={handleDeleteProduct} style={styles.inlineMenuProductItem}>
+                <Icon name="trash-can" size={20} color="#4CAF50" />
+                <Text style={styles.menuText}>Delete</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
       </View>
     );
   }
 }
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
 const ProductScreen = () => {
   const { user } = useAuth();
@@ -147,9 +203,38 @@ const ProductScreen = () => {
   const [activeIndex, setActiveIndex] = useState(0);
   const navigation = useNavigation();
   const [selectedButton, setSelectedButton] = useState('posts');
+  const [posts, setPosts] = useState([]);
+  const [products, setProducts] = useState([]);
   const [menuTimeout, setMenuTimeout] = useState(null); 
   const menuTimeoutRef = useRef(null);
+  const [menuTimeoutProduct, setMenuTimeoutProduct] = useState(null); 
+  const menuTimeoutProductRef = useRef(null);
   const flatListRef = useRef(null);
+  const [showInfoTool, setShowInfoTool] = useState(false);
+  const [showInfoGuide, setShowInfoGuide] = useState(false);
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertMessage, setAlertMessage] = useState('');
+  const [alertTitle, setAlertTitle] = useState('');
+
+  const showAlert = (title, message) => {
+    setAlertTitle(title);
+    setAlertMessage(message);
+    setAlertVisible(true);
+  };
+
+  useEffect(() => {
+    const clearMessage = () => {
+      setShowInfoTool(false);
+      setShowInfoGuide(false);
+    };
+
+    let timer;
+    if (showInfoTool || showInfoGuide) {
+      timer = setTimeout(clearMessage, 4000); 
+    }
+
+    return () => clearTimeout(timer); 
+  }, [showInfoTool, showInfoGuide]);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -157,36 +242,40 @@ const ProductScreen = () => {
         flatListRef.current.scrollToOffset({ animated: true, offset: 0 }); 
       }
 
+      refetchOrders();
       refetchPosts();
       refetchProducts();
 
     }, [])
   );
 
-  const { data: posts = [], isLoading: loadingPosts, refetch: refetchPosts } = useQuery({
+  const { data: fetchedPosts  = [], isLoading: loadingPosts, refetch: refetchPosts } = useQuery({
     queryKey: ['posts', user?.id_user],
     queryFn: () => fetchPosts(user.id_user),
     enabled: !!user, 
     staleTime: 1000 * 60 * 5, 
   });
 
-  const { data: products = [], isLoading: loadingProducts, refetch: refetchProducts } = useQuery({
+  const { data: fetchedProducts = [], isLoading: loadingProducts, refetch: refetchProducts } = useQuery({
     queryKey: ['products', user?.id_user],
     queryFn: () => fetchProducts(user.id_user),
     enabled: !!user, 
     staleTime: 1000 * 60 * 5, 
   });
 
-  const { data: newOrders = [], isLoading: loadingOrders } = useQuery({
+  const { data: newOrders = [], isLoading: loadingOrders, refetch: refetchOrders} = useQuery({
     queryKey: ['newOrders', user?.id_user],
-    queryFn: () => {
-      console.log('Fetching new orders for user ID:', user?.id_user); 
-      return fetchNewOrders(user?.id_user); 
-    },
+    queryFn: () => fetchNewOrders(user.id_user),
     enabled: !!user?.id_user, 
   });
 
-  const todayNewOrdersCount = newOrders.length;
+  useEffect(() => {
+    setPosts(fetchedPosts);
+  }, [fetchedPosts]);
+
+  useEffect(() => {
+    setProducts(fetchedProducts);
+  }, [fetchedProducts]);
 
   const selectedPost = useSelector((state) => state.product.selectedPost);
   const selectedProduct = useSelector((state) => state.product.selectedProduct);
@@ -213,46 +302,38 @@ const ProductScreen = () => {
     };
   }, []);
 
-  const handleDeletePost = () => {
+  const handleDeletePost = async () => {
     if (selectedPost) {
-      setPosts(posts.filter(p => p.id !== selectedPost.id)); 
-      dispatch(clearSelectedPost());
+      try {
+ 
+        await deletePost(selectedPost.id);
+
+        setPosts(posts.filter(p => p.id !== selectedPost.id)); 
+        dispatch(clearSelectedPost());
+      } catch (error) {
+        console.error("Error deleting post:", error);
+        showAlert("Error", "Could not delete the post. Please try again.");
+      }
     }
   };
 
-  const handleEdit = async () => {
-    if (selectedPost) {
-
-      navigation.navigate('Post', { 
-        postToEdit: { 
-          ...selectedPost, 
-          images: selectedPost.images.map(image => ({ uri: image })) 
-        } 
-      });
-  
-      dispatch(clearSelectedPost());
-    }
-  };
-
-  const handleDeleteProduct = () => {
+  const handleDeleteProduct = async () => {
     if (selectedProduct) {
-      setProducts((prevProducts) => 
-        prevProducts.filter(product => product.id !== selectedProduct.id)
-      );
-  
-      dispatch(clearSelectedProduct());
-    }
-  };
+      try {
 
-  const handleEditProduct = () => {
-    if (selectedProduct) {
-      navigation.navigate('ProductPost', { 
-        productToEdit: { 
-          ...selectedProduct, 
-          images: selectedProduct.images.map(image => ({ uri: image })) 
-        } 
-      });
-      dispatch(clearSelectedProduct());
+        await deleteFavoritesByProductId(selectedProduct.id);
+
+        await deleteProduct(selectedProduct.id);
+
+        setProducts((prevProducts) => 
+          prevProducts.filter(product => product.id !== selectedProduct.id)
+        );
+  
+        dispatch(clearSelectedProduct());
+      } catch (error) {
+        console.error("Error deleting product:", error);
+        showAlert("Error", "Could not delete the product. Please try again.");
+      }
     }
   };
 
@@ -274,17 +355,23 @@ const ProductScreen = () => {
   const toggleMenuProduct = (productItem) => {
     if (selectedProduct && selectedProduct.id === productItem.id) {
       dispatch(clearSelectedProduct());
-      clearTimeout(menuTimeout); 
+      clearTimeout(menuTimeoutProduct); 
     } else {
       dispatch(setSelectedProduct(productItem));
-      clearTimeout(menuTimeout); 
-
+      clearTimeout(menuTimeoutProduct); 
+  
       const timeoutId = setTimeout(() => {
         dispatch(clearSelectedProduct());
       }, 5000); 
-      setMenuTimeout(timeoutId); 
+      setMenuTimeoutProduct(timeoutId); 
     }
   };
+
+  useEffect(() => {
+    return () => {
+      clearTimeout(menuTimeoutProduct); 
+    };
+  }, [menuTimeoutProduct]);
 
   useEffect(() => {
     return () => {
@@ -293,10 +380,12 @@ const ProductScreen = () => {
   }, [menuTimeout]);
 
   const renderHeader = () => {
-  
+    const unconfirmedOrders = newOrders.filter(order => !order.confirm_order);
+    const todayNewOrdersCount = unconfirmedOrders.length; 
+
     return (
       <View style={styles.header}>
-        <TouchableOpacity style={styles.marketplaceButton} onPress={() => navigation.navigate('Marketplace')}>
+        <TouchableOpacity style={styles.marketplaceButton} onPress={() => navigation.navigate('MarketplaceFarmer')}>
           <Text style={styles.marketplaceText}>Go to marketplace</Text>
         </TouchableOpacity>
   
@@ -339,7 +428,6 @@ const ProductScreen = () => {
                 <Text style={styles.carouselText}>{item.title}</Text>
                 <Text style={styles.carouselDescription}>{item.description}</Text>
               </View>
-              <ActivityIndicator size={30}  color="green" />
             </View>
           )}
         />
@@ -362,11 +450,17 @@ const ProductScreen = () => {
         <View style={styles.sectionHeaderTool}>
           <Text style={styles.sectionTitleTool}>Farmer's Tool</Text>
           <TouchableOpacity style={styles.questionButtonTool}>
-            <AntDesign name="questioncircleo" size={14} color="black" style={styles.questioncircleTool} />
+            <AntDesign name="questioncircleo" size={14} color="black" style={styles.questioncircleTool} onPress={() => setShowInfoTool((prev) => !prev)}/>
           </TouchableOpacity>
+          {showInfoTool && (
+            <View style={styles.infoMessage}>
+              <Text style={styles.infoText}>
+                FarmNamin offers a comprehensive Farmer's Tool designed to help farmers efficiently manage their agricultural activities.
+              </Text>
+            </View>
+          )}
         </View>
 
-        {/* Section Items - now in the same row */}
         <View style={styles.sectionRowTool}>
           <TouchableOpacity
             style={styles.sectionItemTool}
@@ -422,11 +516,18 @@ const ProductScreen = () => {
         <View style={styles.sectionHeaderGuide}>
           <Text style={styles.sectionTitleGuide}>Farmer's Guide</Text>
           <TouchableOpacity style={styles.questionButtonGuide}>
-            <AntDesign name="questioncircleo" size={14} color="black" style={styles.questioncircleGuide} />
+            <AntDesign name="questioncircleo" size={14} color="black" style={styles.questioncircleGuide} onPress={() => setShowInfoGuide((prev) => !prev)}/>
           </TouchableOpacity>
+          {showInfoGuide && (
+            <View style={styles.infoMessage}>
+              <Text style={styles.infoText}>
+                Farmer's Guide is designed to provide essential information and tools to support farmers in their daily operations. 
+                These features help farmers stay informed about important updates, enhance their agricultural practices, and make better decisions based on current market trends.
+              </Text>
+            </View>
+          )}
         </View>
 
-        {/* Section Items - now in the same row */}
         <View style={styles.sectionRowGuide}>
           <TouchableOpacity
             style={styles.sectionItemGuide}
@@ -471,7 +572,10 @@ const ProductScreen = () => {
         <View style={styles.bottomButtonsContainer}>
           <TouchableOpacity
             style={styles.bottomButton}
-            onPress={() => setSelectedButton('posts')}
+            onPress={() => {
+              setSelectedButton('posts');
+              dispatch(clearSelectedProduct());
+            }}
           >
             <Text
               style={[
@@ -485,7 +589,10 @@ const ProductScreen = () => {
 
           <TouchableOpacity
             style={styles.bottomButton}
-            onPress={() => setSelectedButton('products')}
+            onPress={() => {
+              setSelectedButton('products');
+              dispatch(clearSelectedPost());
+            }}
           >
             <Text
               style={[
@@ -509,7 +616,6 @@ const ProductScreen = () => {
         user={user}
         formatDate={formatDate}
         toggleMenu={toggleMenu}
-        handleEdit={handleEdit}
         handleDeletePost={handleDeletePost}
         selectedPost={selectedPost}
       />
@@ -520,11 +626,10 @@ const ProductScreen = () => {
         formatPrice={formatPrice}
         toggleMenuProduct={toggleMenuProduct}
         selectedProduct={selectedProduct}
-        handleEditProduct={handleEditProduct}
         handleDeleteProduct={handleDeleteProduct}
       />
     );
-  }, [selectedButton, user, formatDate, formatPrice, toggleMenu, handleEdit, handleDeletePost, selectedPost, toggleMenuProduct, selectedProduct, handleEditProduct, handleDeleteProduct]);
+  }, [selectedButton, user, formatDate, formatPrice, toggleMenu, handleDeletePost, selectedPost, toggleMenuProduct, selectedProduct, handleDeleteProduct]);
 
   const combinedData = selectedButton === 'posts' ? posts : products;
 
@@ -548,6 +653,13 @@ const ProductScreen = () => {
           {renderFarmerGuide()}
 
           {renderSwitchButton()}
+
+          <CustomAlert 
+            visible={alertVisible} 
+            title={alertTitle} 
+            message={alertMessage} 
+            onClose={() => setAlertVisible(false)} 
+          />
 
         </View>
       }
@@ -597,10 +709,11 @@ const styles = StyleSheet.create({
   },
   textContainer: {
     position: 'absolute',
-    left: 10,
-    bottom: 10,
+    left: 2,
+    bottom: 5,
     backgroundColor: 'rgba(255, 255, 255, 0.7)',
-    padding: 10,
+    justifyContent: 'center',
+    padding: 5,
     borderRadius: 5,
   },
   carouselText: {
@@ -609,7 +722,7 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   carouselDescription: {
-    fontSize: width * 0.03,
+    fontSize: 11,
     color: '#666',
   },
   header: {
@@ -665,8 +778,8 @@ const styles = StyleSheet.create({
   },
   dot: {
     margin: 5,
-    width: 10,
-    height: 10,
+    width: 8,
+    height: 8,
     borderRadius: 5,
     backgroundColor: '#4CAF50',
   },
@@ -678,7 +791,8 @@ const styles = StyleSheet.create({
   sectionHeaderTool: {
     flexDirection: 'row',            
     alignItems: 'center',            
-    width: '100%',                           
+    width: '100%',  
+    position: 'relative',                         
   },
   sectionTitleTool: {
     fontSize: 14,
@@ -728,7 +842,8 @@ const styles = StyleSheet.create({
   sectionHeaderGuide: {
     flexDirection: 'row',            
     alignItems: 'center',            
-    width: '100%',                           
+    width: '100%', 
+    position: 'relative',                         
   },
   sectionTitleGuide: {
     fontSize: width * 0.035,
@@ -787,11 +902,16 @@ const styles = StyleSheet.create({
     fontSize: width * 0.035,
     fontFamily: 'medium',
   },
-  postsContainer: {
-    paddingHorizontal: 20,
-  },
   postItem: {
-    padding: 5,
+    marginBottom: 10,
+    padding: 20,
+    borderRadius: 10,
+    backgroundColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 4,
   },
   postInfo: {
     fontSize: width * 0.03,
@@ -805,7 +925,7 @@ const styles = StyleSheet.create({
     color: '#555',
   },
   postTitle: {
-    padding: 10,
+    marginTop: 10,
     fontSize: width * 0.04,
     fontFamily: 'medium',
     color: '#333',
@@ -822,7 +942,11 @@ const styles = StyleSheet.create({
   postInfoContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    marginTop: -10,
+  },
+  dotsButton: {
     alignItems: 'center',
+    justifyContent: 'center',
   },
   loadingContainer: {
     alignItems: 'center',
@@ -852,6 +976,18 @@ const styles = StyleSheet.create({
     padding: 8,
     alignItems: 'center',
   },
+  inlineMenuContainerProduct: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    backgroundColor: '#f8f8f8',
+    borderRadius: 5,
+    marginTop: 4,
+    elevation: 2,
+  },
+  inlineMenuProductItem: {
+    padding: 8,
+    alignItems: 'center',
+  },
   line: {
     height: 2, 
     width: '100%', 
@@ -865,6 +1001,7 @@ const styles = StyleSheet.create({
     marginTop: 10, 
   },
   grandLine: {
+    marginBottom: 10,
     height: 2, 
     width: '100%', 
     backgroundColor: '#ddd',
@@ -941,14 +1078,22 @@ const styles = StyleSheet.create({
     right: 10,
     fontSize: width * 0.05,
     fontFamily: 'bold',
-    color: 'black',
+    color: '#66BB6A',
   },
   noImagesText: {
     fontSize: width * 0.035,
     color: '#9E9E9E',
   },
   productContainer: {
-    padding: 10,
+    marginBottom: 10,
+    padding: 20,
+    borderRadius: 10,
+    backgroundColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 4,
   },
   productInfoContainer: {
     flexDirection: 'column', 
@@ -957,7 +1102,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   productMenuWrapper: {
-    padding: 5,
     flexDirection: 'row', 
     justifyContent: 'space-between', 
     alignItems: 'center',
@@ -968,6 +1112,27 @@ const styles = StyleSheet.create({
     right: 0, 
     bottom: 0,
   },
+  noImageContainer: {
+    width: '100%',
+    height: 150,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f0f0f0',
+  },
+  noImageText: {
+    color: '#888', 
+    fontSize: 14,
+    fontFamily: 'regular',
+  },
+  playButton: {
+    position: 'absolute',
+    justifyContent: 'center',
+    alignItems: 'center',
+    top: '50%',
+    left: '50%',
+    marginLeft: -15, 
+    marginTop: -15, 
+  },
   productImage: {
     width: '100%', 
     height: 250, 
@@ -976,14 +1141,15 @@ const styles = StyleSheet.create({
   },
   productName: {
     textAlign: 'center',
-    fontSize: width * 0.05,
+    fontSize: 15,
     fontFamily: 'medium',
     marginTop: 10,
   },
   productPrice: {
     textAlign: 'center',
-    fontSize: width * 0.04,
+    fontSize: 14,
     fontFamily: 'medium',
+    color: '#333',
   },
   textBalls: {
     fontSize: width * 0.07,
@@ -1005,6 +1171,22 @@ const styles = StyleSheet.create({
     color: 'gray', 
     textAlign: 'center',
     fontFamily: 'regular', 
+  },
+  infoMessage: {
+    backgroundColor: 'white', 
+    position: 'absolute',
+    width: '90%',
+    height: 'auto',
+    borderRadius: 5,
+    padding: 10,
+    marginBottom: 1,
+    elevation: 3, 
+    zIndex: 10, 
+  },
+  infoText: {
+    fontFamily: 'regular',
+    fontSize: 12,
+    color: '#333',
   },
 });
 

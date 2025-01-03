@@ -7,7 +7,7 @@ import Carousel from 'react-native-reanimated-carousel';
 import { useFocusEffect } from '@react-navigation/native';
 import { useQuery } from '@tanstack/react-query';
 import { useDispatch } from 'react-redux';
-import { fetchUserFavorites, fetchFarmers } from '../utils/api';
+import { fetchUserFavorites, fetchFarmers, fetchAllProducts } from '../utils/api';
 import { supabase } from '../backend/supabaseClient';
 import { useAuth } from '../hooks/useAuth';
 import { addFavorite } from '../store/favoritesSlice'; 
@@ -17,7 +17,7 @@ import CustomAlert from '../support/CustomAlert';
 const { width } = Dimensions.get('window');
 
 const ProductViewer = ({ route, navigation }) => {
-    const { product, isFavorite, id_user } = route.params;
+    const { product: initialProduct, isFavorite, id_user } = route.params;
     const { user } = useAuth();
     const dispatch = useDispatch();
     const [tag, setTag] = useState('');
@@ -33,21 +33,50 @@ const ProductViewer = ({ route, navigation }) => {
     const [isLoadingFeedback, setIsLoadingFeedback] = useState(false);
     const [showOrderInput, setShowOrderInput] = useState(false); 
     const [quantity, setQuantity] = useState('');
+    const [product, setProduct] = useState(initialProduct);
 
     useRealTimeUpdates(user?.id_user);
 
-    const { data: farmersData = [], isLoading: loadingFarmers } = useQuery({
+    const { data: farmersData = [], isLoading: loadingFarmers, refetch: refetchFarmers } = useQuery({
         queryKey: ['farmers', id_user],
         queryFn: () => fetchFarmers(id_user),
         staleTime: 1000 * 60 * 5,
     });
 
-    const { data: favoriteProducts } = useQuery({
+    const { data: favoriteProducts, refetch: refetchFavoriteProducts } = useQuery({
         queryKey: ['favorites', user?.id_user], 
         queryFn: () => fetchUserFavorites(user.id_user), 
         enabled: !!user,
         staleTime: 1000 * 60 * 5, 
     });
+
+    const { data: fetchProducts = [], refetch: refetchAllProducts} = useQuery({
+        queryKey: ['products'], 
+        queryFn: fetchAllProducts,
+        staleTime: 1000 * 60 * 5, 
+    });
+
+    useFocusEffect(
+        React.useCallback(() => {
+            const fetchUpdatedProductData = async () => {
+                try {
+                    const updatedProducts = await fetchAllProducts();
+                    const updatedProduct = updatedProducts.find(prod => prod.id === product.id);
+                    if (updatedProduct) {
+                        setProduct(updatedProduct);
+                    }
+                } catch (error) {
+                    console.error("Error fetching updated product data:", error);
+                }
+            };
+
+            setShowOrderInput(false);
+            refetchFarmers();
+            refetchAllProducts();
+            refetchFavoriteProducts();
+            fetchUpdatedProductData();
+        }, [product.id])
+    );
 
     useEffect(() => {
         if (favoriteProducts) {
@@ -240,6 +269,7 @@ const ProductViewer = ({ route, navigation }) => {
             farmerName: farmersData[0].first_name + farmersData[0].last_name,
             farmerContact: formatPhoneNumberForDisplay(farmersData[0].phone_number),
             farmer_id: farmersData[0].id_user,
+            productId: product.id,
         };
 
         console.log('Order Data:', orderData);
@@ -345,6 +375,7 @@ const ProductViewer = ({ route, navigation }) => {
                         <Text>No media available</Text>
                     </View>
                 )}
+
                 <View style={styles.mainContainer}>
                     <View style={styles.infoContainer}>
 

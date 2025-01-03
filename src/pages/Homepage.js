@@ -1,24 +1,22 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { View, Text, StatusBar, Image, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, FlatList, Dimensions, ScrollView } from "react-native";
+import { View, Text, StatusBar, Image, StyleSheet, TouchableOpacity, ActivityIndicator, FlatList, Dimensions, ScrollView } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import Carousel from "react-native-reanimated-carousel";
 import { useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../hooks/useAuth';
 import quotes from '../support/QuotesData';
-import { useDispatch, useSelector } from 'react-redux';
 import { fetchAllPosts } from '../utils/api';
-import { setSelectedPost, clearSelectedPost } from '../store/postSlice';
 import { useQuery } from '@tanstack/react-query';
 import DataInfo from '../support/DataInfo';
 import agritechData from '../support/agritechData';
 import globaltrendsData from "../support/globaltrendsData";
 import agriNewsData from "../support/agriNewsData";
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import { format, parseISO } from 'date-fns';
+import { parseISO } from 'date-fns';
 
 class PostItem extends React.PureComponent {
   render() {
-    const { item, user, formatDate, toggleMenu, handleDeletePost, selectedPost, navigation, setIsPostDetailActive } = this.props;
+    const { item, user, formatDate, navigation, setIsPostDetailActive } = this.props;
 
     return (
       <View style={styles.postItem}>
@@ -26,13 +24,10 @@ class PostItem extends React.PureComponent {
           <Text style={styles.postInfo}>
             {item.id_user === user?.id_user ? 'You' : `${item.first_name || 'Farmer'}`} • {formatDate(item.created_at)}
           </Text>
-          <TouchableOpacity onPress={() => toggleMenu(item)}>
-            <Icon name="dots-horizontal" size={25} color="black" />
-          </TouchableOpacity>
         </View>
 
         <Text style={styles.postLocation}>
-          Located in {item.location || 'Unknown'} • Contact Number #{item.id_user === user?.id_user ? `0${user?.phone_number || '------'}` : `0${item.phone_number || '------'}`}
+          Located in {item.location || 'Unknown'} • Contact Number #{item.id_user === user?.id_user ? `${user?.phone_number || '------'}` : `0${item.phone_number || '------'}`}
         </Text>
 
         {item.description && (
@@ -52,8 +47,6 @@ class PostItem extends React.PureComponent {
                   source={{ uri: item.images[0] }}
                   style={styles.singleImage}
                   resizeMode="cover"
-                  onLoad={() => console.log('Image loaded successfully')}
-                  onError={(error) => console.error('Image loading error:', error.nativeEvent.error)}
                 />
               ) : item.images.length === 2 ? (
                 <View style={styles.doubleImageContainer}>
@@ -88,15 +81,6 @@ class PostItem extends React.PureComponent {
         ) : (
           <Text style={styles.noImagesText}>No images available</Text>
         )}
-        {selectedPost && selectedPost.id === item.id && (
-          <View style={styles.inlineMenuContainer}>
-            <TouchableOpacity onPress={handleDeletePost} style={styles.inlineMenuItem}>
-              <Icon name="trash-can" size={20} color="black" /> 
-              <Text style={styles.menuText}>Delete</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-        <View style={styles.line} />
       </View>
     );
   }
@@ -106,12 +90,10 @@ const { width } = Dimensions.get('window');
 
 const HomeScreen = () => {
   const { user } = useAuth();
-  const dispatch = useDispatch();
   const navigation = useNavigation();
   const [quoteIndex, setQuoteIndex] = useState(0);
   const [activeIndex, setActiveIndex] = useState(0);
   const flatListRef = useRef(null);
-  const [menuTimeout, setMenuTimeout] = useState(null); 
   const [isLoading, setIsLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [posts, setPosts] = useState([]);
@@ -120,10 +102,6 @@ const HomeScreen = () => {
     globalTrends: useRef(null),
     agriNews: useRef(null),
   };
-  const menuTimeoutRef = useRef(null);
-
-  const selectedPost = useSelector((state) => state.post.selectedPost);
-
   const [isPostDetailActive, setIsPostDetailActive] = useState(false);
 
   const { data: fetchedPosts  = [], isLoading: loadingPosts, refetch: refetchPosts } = useQuery({
@@ -151,10 +129,6 @@ const HomeScreen = () => {
     }, [fetchedPosts])
   );
 
-  useEffect(() => {
-    console.log(posts);
-  }, [posts]);
-
   useFocusEffect(
     useCallback(() => {
       if (!isPostDetailActive) {
@@ -168,8 +142,9 @@ const HomeScreen = () => {
           }
         });
 
-        refetchPosts();
       }
+
+      refetchPosts();
     }, [isPostDetailActive])
   );
 
@@ -178,53 +153,48 @@ const HomeScreen = () => {
   };
 
   useEffect(() => {
-    return () => {
-      clearTimeout(menuTimeout);
-    };
-  }, [menuTimeout]);
-
-  useEffect(() => {
-    return () => {
-      if (menuTimeoutRef.current) clearTimeout(menuTimeoutRef.current);
-    };
-  }, []);
-
-  const toggleMenu = (postItem) => {
-    if (selectedPost && selectedPost.id === postItem.id) {
-      dispatch(clearSelectedPost());
-      clearTimeout(menuTimeout); 
-    } else {
-      dispatch(setSelectedPost(postItem)); 
-      clearTimeout(menuTimeout); 
-      
-      const timeoutId = setTimeout(() => {
-        dispatch(clearSelectedPost());
-      }, 5000); 
-      setMenuTimeout(timeoutId); 
-    }
-  };
-
-  useEffect(() => {
     changeQuote();
   }, [user]);
 
   const formatDate = (date) => {
     try {
-      return format(date ? parseISO(date) : new Date(), "EEEE • MMMM d, yyyy • hh:mm a");
+      if (!date) {
+        return 'Invalid Date';
+      }
+
+      const parsedDate = parseISO(date);
+
+      if (isNaN(parsedDate)) {
+        return 'Invalid Date';
+      }
+
+      const options = {
+        timeZone: 'Asia/Manila',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        weekday: 'long',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true,
+      };
+
+      const formatter = new Intl.DateTimeFormat('en-PH', options);
+      const parts = formatter.formatToParts(parsedDate);
+
+      const day = parts.find(part => part.type === 'weekday').value;
+      const month = parts.find(part => part.type === 'month').value;
+      const dayOfMonth = parts.find(part => part.type === 'day').value;
+      const year = parts.find(part => part.type === 'year').value;
+      const hour = parts.find(part => part.type === 'hour').value;
+      const minute = parts.find(part => part.type === 'minute').value;
+      const ampm = parts.find(part => part.type === 'dayPeriod').value;
+
+      return `${day} • ${month} ${dayOfMonth}, ${year} • ${hour}:${minute} ${ampm}`;
     } catch (error) {
+      console.error("Error formatting date:", error);
       return 'Invalid Date';
     }
-  };  
-
-  const handleDeletePost = (postId) => {
-    if (postId) {
-      setPosts(posts.filter(p => p.id !== postId.id)); 
-      dispatch(clearSelectedPost());
-    }
-  };
-
-  const handleNeedHelp = () => {
-    Alert.alert("Need Help?", "Contact us at support@farmnamin.com");
   };
 
   const handleScrollEnd = (ref) => (event) => {
@@ -315,7 +285,7 @@ const HomeScreen = () => {
 
         <View style={styles.greetingContainer}>
 
-          <Text style={styles.greetingText}>Hello, {user?.first_name.trim() || 'User'}!</Text>
+          <Text style={styles.greetingText}>Hello, {user?.first_name || 'User'}</Text>
 
           <Text style={styles.quote}>
             {quotes[quoteIndex]} 
@@ -337,9 +307,6 @@ const HomeScreen = () => {
         item={item}
         user={user}
         formatDate={formatDate}
-        toggleMenu={toggleMenu}
-        handleDeletePost={() => handleDeletePost(item.id)}
-        selectedPost={selectedPost}
         navigation={navigation} 
         setIsPostDetailActive={setIsPostDetailActive}
       />
@@ -354,28 +321,12 @@ const HomeScreen = () => {
     });
   };
 
-  const handleLoadMore = () => {
-    if (!loadingMore) {
-      setLoadingMore(true);
-      refetchPosts().then((newPosts) => {
-        if (newPosts.length > 0) {
-          setPosts(prevPosts => {
-            const combinedPosts = [...prevPosts, ...newPosts];
-            const latestPosts = combinedPosts.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-            return latestPosts.slice(0, 10); 
-          });
-        }
-        setLoadingMore(false);
-      });
-    }
-  };
-
   const renderIntroDailyFeeds = () => {
     return (
       <View>
         <View style={styles.dailyLine}/>
         <Text style={styles.dailyText}>Daily Feeds</Text>
-        <View style={styles.dailyLine}/>
+        <View style={[styles.dailyLine, { marginBottom: 10 }]}/>
       </View>
     );
   };
@@ -413,9 +364,6 @@ const HomeScreen = () => {
       }
       refreshing={loadingPosts}
       onRefresh={handleRefresh}
-      onEndReached={handleLoadMore}
-      onEndReachedThreshold={0.5}
-      ListFooterComponent={loadingMore ? <ActivityIndicator size="large" color="green" /> : null}
     />
   );
 };
@@ -518,7 +466,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   sectionTitle: {
-    fontSize: 16, 
+    fontSize: 15, 
     marginBottom: 5,
     fontFamily: 'medium',
     color: "#333",
@@ -543,7 +491,7 @@ const styles = StyleSheet.create({
     borderColor: '#ddd',
   },
   newsTitle: {
-    fontSize: 17,
+    fontSize: 15,
     fontFamily: 'medium',
     marginTop: 10,
   },
@@ -580,7 +528,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   postItem: {
-    padding: 5,
+    marginBottom: 10,
+    padding: 20,
+    borderRadius: 10,
+    backgroundColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 4,
+  },
+  dotsButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: -10,
   },
   postInfo: {
     fontSize: width * 0.03,
@@ -594,7 +555,7 @@ const styles = StyleSheet.create({
     color: '#555',
   },
   postTitle: {
-    padding: 10,
+    marginTop: 10,
     fontSize: width * 0.04,
     fontFamily: 'medium',
     color: '#333',
@@ -611,7 +572,7 @@ const styles = StyleSheet.create({
   postInfoContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    marginTop: -10,
   },
   line: {
     height: 3, 
@@ -685,7 +646,7 @@ const styles = StyleSheet.create({
     right: 10,
     fontSize: width * 0.06,
     fontFamily: 'bold',
-    color: '#4CAF50',
+    color: '#66BB6A',
   },
   noImagesText: {
     fontSize: width * 0.035,

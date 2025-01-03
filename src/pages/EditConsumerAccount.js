@@ -10,6 +10,7 @@ import { fetchProfileData } from '../utils/api';
 import { setProfile } from '../store/profileSlice';
 import { supabase } from '../backend/supabaseClient';
 import useRealTimeUpdates from '../hooks/useRealTimeUpdates';
+import CustomAlert from '../support/CustomAlert';
 
 const { width, height } = Dimensions.get('window');
 
@@ -25,6 +26,15 @@ const EditAccountScreen = () => {
     const [isModifiedContactNumber, setIsModifiedContactNumber] = useState('');
     const [isModifiedSocialAccount, setIsModifiedSocialAccount] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [alertVisible, setAlertVisible] = useState(false);
+    const [alertMessage, setAlertMessage] = useState('');
+    const [alertTitle, setAlertTitle] = useState('');
+
+    const showAlert = (title, message) => {
+        setAlertTitle(title);
+        setAlertMessage(message);
+        setAlertVisible(true);
+    };
 
     const { data: profile, refetch: refetchProfile } = useQuery({
             queryKey: ['profile', user?.id_user],
@@ -46,11 +56,6 @@ const EditAccountScreen = () => {
     );
   
     const handleSaveChanges = async () => {
-        if (!userId) {
-            Alert.alert('Error', 'User ID is not available. Please log in.');
-            return;
-        }
-    
         setIsLoading(true);
     
         try {
@@ -65,12 +70,11 @@ const EditAccountScreen = () => {
     
                 if (authError) {
                     console.error('Error updating email:', authError);
-                    Alert.alert('Error', 'There was an error updating your email. Please try again.');
+                    showAlert('Error', 'There was an error updating your email. Please try again.');
                     setIsLoading(false);
                     return;
                 } else {
-                    console.log('Email update triggered successfully:', authData);
-                    Alert.alert(
+                    showAlert(
                         'Email Updated',
                         'Your email has been updated. Please check your inbox to verify the new email address.'
                     );
@@ -90,19 +94,18 @@ const EditAccountScreen = () => {
     
                 if (error) {
                     console.error('Error updating profile:', error);
-                    Alert.alert('Error', 'There was an error updating your profile. Please try again.');
+                    showAlert('Error', 'There was an error updating your profile. Please try again.');
                 } else {
-                    console.log('Profile updated successfully:', data);
-                    Alert.alert('Success', 'Your profile has been updated successfully.');
+                    showAlert('Success', 'Your profile has been updated successfully.');
                 }
             }
     
             if (!hasChanges) {
-                Alert.alert('No Changes Detected', 'There are no new changes to save.');
+                showAlert('No Changes Detected', 'There are no new changes to save.');
             }
         } catch (error) {
             console.error('Unexpected error during profile update:', error);
-            Alert.alert('Error', 'An unexpected error occurred. Please try again.');
+            showAlert('Error', 'An unexpected error occurred. Please try again.');
         } finally {
             setIsLoading(false);
         }
@@ -190,6 +193,13 @@ const EditAccountScreen = () => {
                 )}
                 </TouchableOpacity>
             </View>
+
+            <CustomAlert 
+                visible={alertVisible} 
+                title={alertTitle} 
+                message={alertMessage} 
+                onClose={() => setAlertVisible(false)} 
+            />
         </ScrollView>
     );
 };

@@ -13,6 +13,7 @@ import { decode } from 'base64-arraybuffer';
 import { v4 as uuidv4 } from 'uuid';
 import { supabase } from '../backend/supabaseClient';
 import useRealTimeUpdates from '../hooks/useRealTimeUpdates';
+import CustomAlert from '../support/CustomAlert';
 
 const { width, height } = Dimensions.get('window');
 
@@ -29,6 +30,15 @@ const EditProfileScreen = () => {
   const [isModifiedExperience, setIsModifiedExperience] = useState(false);
   const [coverPhotoWarning, setCoverPhotoWarning] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertMessage, setAlertMessage] = useState('');
+  const [alertTitle, setAlertTitle] = useState('');
+
+  const showAlert = (title, message) => {
+    setAlertTitle(title);
+    setAlertMessage(message);
+    setAlertVisible(true);
+  };
 
   const { data: profile, refetch: refetchProfile } = useQuery({
     queryKey: ['profile', user?.id_user],
@@ -57,7 +67,7 @@ const EditProfileScreen = () => {
   const handleOpenGallery = async (type) => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permission to access camera roll is required!');
+      showAlert('Gallery Access Permission Needed','Permission to access camera roll is required!');
       return;
     }
 
@@ -110,8 +120,7 @@ const EditProfileScreen = () => {
           console.error('Error uploading image:', error);
           return null; 
         }
-  
-        console.log('Image uploaded successfully');
+
       };
     } catch (error) {
       console.error('Error uploading image:', error);
@@ -119,10 +128,6 @@ const EditProfileScreen = () => {
   };
   
   const handleSaveChanges = async () => {
-    if (!userId) {
-      Alert.alert('Error', 'User  ID is not available. Please log in.');
-      return;
-    }
   
     setIsLoading(true);
     
@@ -149,7 +154,7 @@ const EditProfileScreen = () => {
       }
 
       if (!hasChanges) {
-        Alert.alert('No changes detected', 'There are no new changes to save.');
+        showAlert('No changes detected', 'There are no new changes to save.');
         return;
       }
 
@@ -167,14 +172,13 @@ const EditProfileScreen = () => {
   
       if (error) {
         console.error('Error updating profile:', error);
-        Alert.alert('Error', 'There was an error updating your profile. Please try again.');
+        showAlert('Error', 'There was an error updating your profile. Please try again.');
       } else {
-        console.log('Profile updated successfully:', data);
-        Alert.alert('Success', 'Profile updated successfully');
+        showAlert('Success', 'Profile updated successfully');
       }
     } catch (error) {
       console.error('Unexpected error during profile update:', error);
-      Alert.alert('Error', 'An unexpected error occurred. Please try again.');
+      showAlert('Error', 'An unexpected error occurred. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -287,6 +291,13 @@ const EditProfileScreen = () => {
           <Text style={styles.buttonText}>Edit account details</Text>
         </TouchableOpacity>
       </View>
+
+      <CustomAlert 
+        visible={alertVisible} 
+        title={alertTitle} 
+        message={alertMessage} 
+        onClose={() => setAlertVisible(false)} 
+      />
     </ScrollView>
   );
 };

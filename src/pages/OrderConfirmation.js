@@ -1,66 +1,78 @@
 import React from 'react';
-import { View, Text, Image, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, Image, StyleSheet, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { useNavigation } from "@react-navigation/native";
+import { format, parseISO } from 'date-fns'
 
-const OrderConfirmationPage = ({ navigation }) => {
-  const farmerContact = "09123456789";
-  const farmerName = "Mang Kanor Rodrigo";
-  const orderId = "12345";
-  const product = "Dako nga Talong";
-  const quantity = 2;
-  const total = "₱30.00";
+const { width, height } = Dimensions.get('window');
 
+const OrderConfirmation = ({ route }) => {
+  const { order } = route.params;
+  const navigation = useNavigation();
+
+  const formatDate = (date) => {
+    try {
+      return format(date ? parseISO(date) : new Date(), " MMMM d, yyyy, hh:mm a");
+    } catch (error) {
+      return 'Invalid Date';
+    }
+  };
 
   return (
-    <ScrollView style={styles.container}>
-      {/* Header Row with Back Button and Centered Greeting */}
-      <View style={styles.headerRow}>
+    <ScrollView 
+      contentContainerStyle={styles.container} 
+      showsVerticalScrollIndicator={false} 
+      keyboardShouldPersistTaps="handled"
+    >
+      <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#4CAF50" />
+          <Ionicons name="arrow-back" size={35} color="#4CAF50" />
         </TouchableOpacity>
         <Text style={styles.greeting}>Good day!</Text>
       </View>
 
-      {/* Greeting Message */}
-      <View style={styles.header}>
-        <Text style={styles.message}>
-          Your order has been reviewed and confirmed by the farm owner.
-        </Text>
-      </View>
+      <Text style={styles.message}>
+        Your order has been reviewed and confirmed by the farm owner.
+      </Text>
 
-      {/* Header Image */}
       <Image
-        source={require('./assets/images/header-order-consumer.jpg')}
+        source={require('../../assets/images/header-order-consumer.jpg')}
         style={styles.headerImage}
       />
 
-      {/* Order Summary */}
       <View style={styles.orderSummary}>
         <Text style={styles.orderSummaryTitle}>Order Summary</Text>
         <Text style={styles.orderSummaryText}>
-          <Text style={styles.boldText}>Order ID:</Text> {orderId}
+          <Text style={styles.boldText}>Order ID:</Text> {order.order_id}
         </Text>
         <Text style={styles.orderSummaryText}>
-          <Text style={styles.boldText}>Farmer:</Text> {farmerName}
+          <Text style={styles.boldText}>Product Ordered:</Text> {order.product_name}
         </Text>
         <Text style={styles.orderSummaryText}>
-          <Text style={styles.boldText}>Product Ordered:</Text> {product}
+          <Text style={styles.boldText}>Quantity:</Text> {order.quantity}
         </Text>
         <Text style={styles.orderSummaryText}>
-          <Text style={styles.boldText}>Quantity:</Text> {quantity}
+          <Text style={styles.boldText}>Total Price:</Text> {order.total_price}
         </Text>
         <Text style={styles.orderSummaryText}>
-          <Text style={styles.boldText}>Total:</Text> {total}
+          <Text style={styles.boldText}>Product Owned by:</Text> 
+          {[
+              order.farmer.first_name,
+              order.farmer.middle_name,
+              order.farmer.last_name,
+              order.farmer.suffix
+            ].filter(Boolean).join(' ')}
+        </Text>
+        <Text style={styles.orderSummaryText}>
+          <Text style={styles.boldText}>Date Ordered:</Text> {formatDate(order.created_at)}
         </Text>
       </View>
 
-      {/* Order Status */}
       <View style={styles.status}>
         <Text style={styles.statusTitle}>Status</Text>
         <Text style={styles.statusText}>Order confirmed by the farm owner</Text>
       </View>
 
-      {/* Delivery Details */}
       <View style={styles.deliveryDetails}>
         <Text style={styles.deliveryDetailsTitle}>Delivery Details</Text>
         <Text style={styles.deliveryDetailsText}>
@@ -68,12 +80,14 @@ const OrderConfirmationPage = ({ navigation }) => {
         </Text>
       </View>
 
-      {/* Contact Information */}
       <View style={styles.contact}>
         <Text style={styles.contactTitle}>
           If you have any concerns, please contact the farmer:
         </Text>
-        <Text style={styles.contactText}>Contact #: {farmerContact}</Text>
+        <Text style={styles.contactText}>Contact #: {order.farmer.phone_number}</Text>
+        {order.farmer && order.farmer.address ? (
+          <Text style={styles.contactText}>Address: {order.farmer.address}</Text>
+        ) : null}
         <Text style={styles.contactMessage}>
           We are here to address your concerns promptly and ensure a smooth experience.
         </Text>
@@ -84,45 +98,45 @@ const OrderConfirmationPage = ({ navigation }) => {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    flexGrow: 1,
     backgroundColor: '#f4f4f4',
-    paddingHorizontal: 15,
-    paddingVertical: 30,
-    paddingBottom: 20,
+    padding: 20,
   },
-  headerRow: {
-    flexDirection: 'row',
+  header: {
+    padding: 10,
+    marginBottom: height * 0.02,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 20,
-    marginBottom: 10,
     position: 'relative',
   },
   backButton: {
     position: 'absolute',
     left: 0,
-    padding: 10,
-    backgroundColor: 'transparent',
   },
   greeting: {
-    fontSize: 24,
-    fontWeight: 'bold',
+    fontSize: 16,
+    fontFamily: 'bold',
     color: '#4CAF50',
   },
-  header: {
-    marginBottom: 15,
-    alignItems: 'center',
-  },
   message: {
-    fontSize: 16,
+    fontSize: 14,
+    fontFamily: 'medium',
     color: '#333',
     textAlign: 'center',
   },
   headerImage: {
     width: '100%',
     height: 200,
+    marginBottom: 20,
+    marginTop: 10,
     resizeMode: 'cover',
-    marginVertical: 10,
+    borderRadius: 10,
+    backgroundColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   orderSummary: {
     backgroundColor: '#fff',
@@ -131,16 +145,22 @@ const styles = StyleSheet.create({
     marginBottom: 18,
   },
   orderSummaryTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
+    fontSize: 14,
+    fontFamily: 'bold',
     color: '#333',
     marginBottom: 12,
   },
   orderSummaryText: {
-    fontSize: 14,
+    fontSize: 13,
+    fontFamily: 'regular',
     color: '#555',
     marginBottom: 5,
   },
+  boldText: {
+    fontSize: 14,
+    fontFamily: 'medium',
+    color: '#333', 
+  },  
   status: {
     backgroundColor: '#fff',
     padding: 15,
@@ -148,13 +168,14 @@ const styles = StyleSheet.create({
     marginBottom: 18,
   },
   statusTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
+    fontSize: 14,
+    fontFamily: 'bold',
     color: '#333',
-    marginBottom: 12,
+    marginBottom: 8,
   },
   statusText: {
     fontSize: 14,
+    fontFamily: 'regular',
     color: '#4CAF50',
   },
   deliveryDetails: {
@@ -164,13 +185,14 @@ const styles = StyleSheet.create({
     marginBottom: 18,
   },
   deliveryDetailsTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
+    fontSize: 14,
+    fontFamily: 'bold',
     color: '#333',
     marginBottom: 12,
   },
   deliveryDetailsText: {
     fontSize: 14,
+    fontFamily: 'regular',
     color: '#555',
     marginBottom: 5,
   },
@@ -181,26 +203,23 @@ const styles = StyleSheet.create({
     marginBottom: 50,
   },
   contactTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
+    fontSize: 13,
+    fontFamily: 'bold',
     color: '#333',
     marginBottom: 10,
   },
   contactText: {
-    fontSize: 14,
+    fontSize: 13,
+    fontFamily: 'medium',
     color: '#555',
     marginBottom: 6,
   },
   contactMessage: {
-    fontSize: 14,
+    fontSize: 13,
     fontStyle: 'italic',
     color: '#333',
     marginTop: 10,
   },
-  boldText: {
-    fontWeight: 'bold',
-    color: '#333', 
-  },  
 });
 
-export default OrderConfirmationPage;
+export default OrderConfirmation;

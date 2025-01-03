@@ -79,12 +79,11 @@ const WebViewScreen = ({ route }) => {
             <StatusBar hidden={false} />
 
             <View style={styles.header}>
-                {/* Back Button */}
+
                 <TouchableOpacity onPress={goBack}>
                     <Ionicons name="arrow-back" size={30} color="#4CAF50" />
                 </TouchableOpacity>
 
-                {/* Reload Button with Animation */}
                 <TouchableOpacity onPress={reload}>
                     <Animated.View style={{ transform: [{ rotate: rotateAnimation }] }}>
                         <Ionicons name="reload" size={30} color="#4CAF50" />
@@ -92,28 +91,31 @@ const WebViewScreen = ({ route }) => {
                 </TouchableOpacity>
             </View>
 
-            {/* Loader: Show loading indicator when WebView is loading */}
             {loading && (
                 <View style={[styles.loaderContainer, { top: '50%' }]}>
                     <ActivityIndicator size={40} color="#4CAF50" />
                 </View>
             )}
 
-            {/* If low network, show only the center part of the webpage */}
             {isLowNetwork ? (
                 <View style={styles.lowNetworkContainer}>
                     <Text style={styles.lowNetworkText}>Slow Network Detected. Displaying the center of the page...</Text>
-                    {/* This can be a simplified or fallback content view */}
                     <WebView
                         source={{ uri: url }}
                         style={styles.centeredWebView}
+                        onLoadStart={() => setLoading(true)} 
+                        onLoadEnd={() => setLoading(false)} 
+                        onHttpError={() => setLoading(false)} 
                     />
                 </View>
             ) : (
                 <WebView
                     source={{ uri: url }}
                     style={styles.fullWebView}
-                    onLoadEnd={() => setLoading(false)} 
+                    onLoadStart={() => setLoading(true)} 
+                    onLoadEnd={() => setLoading(false)}
+                    onHttpError={() => setLoading(false)}
+                    
                 />
             )}
         </View>

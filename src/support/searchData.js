@@ -1,0 +1,60 @@
+const searchData = {
+    Corn: [
+        { type: 'White Corn', highPrice: 35.00, lowPrice: 28.00 },
+        { type: 'Yellow Corn', highPrice: 38.00, lowPrice: 30.00 },
+    ],
+    Rice: [
+        { type: 'Special Rice', highPrice: 70.00, lowPrice: 60.00 },
+        { type: 'Premium Rice', highPrice: 80.00, lowPrice: 65.00 },
+        { type: 'Well-milled Rice', highPrice: 65.00, lowPrice: 55.00 },
+        { type: 'Regular Milled Rice', highPrice: 65.00, lowPrice: 55.00 },
+    ],
+    Seafood: [
+        { type: 'Milkfish (Bangus)', highPrice: 180.00, lowPrice: 150.00 },
+        { type: 'Tilapia', highPrice: 120.00, lowPrice: 100.00 },
+        { type: 'Galunggong', highPrice: 200.00, lowPrice: 160.00 },
+        { type: 'Alumahan', highPrice: 220.00, lowPrice: 180.00 },
+        { type: 'Sardines (Tamban)', highPrice: 100.00, lowPrice: 80.00 },
+        { type: 'Squid', highPrice: 250.00, lowPrice: 200.00 },
+        { type: 'Yellow-Fin Tuna (Tambakol)', highPrice: 300.00, lowPrice: 250.00 },
+    ],
+    Spices: [
+        { type: 'Garlic (Native)', highPrice: 120.00, lowPrice: 100.00 },
+        { type: 'Red Onion', highPrice: 80.00, lowPrice: 60.00 },
+        { type: 'White Onion', highPrice: 70.00, lowPrice: 50.00 },
+        { type: 'Ginger', highPrice: 90.00, lowPrice: 70.00 },
+        { type: 'Chili (Labuyo)', highPrice:  150.00, lowPrice: 120.00 },
+    ],
+    LowLandVegetables: [
+        { type: 'Ampalaya', highPrice: 60.00, lowPrice: 40.00 },
+        { type: 'Sitao', highPrice: 50.00, lowPrice: 30.00 },
+        { type: 'Pechay', highPrice: 40.00, lowPrice: 30.00 },
+        { type: 'Squash', highPrice: 50.00, lowPrice: 35.00 },
+        { type: 'Eggplant', highPrice: 60.00, lowPrice: 40.00 },
+        { type: 'Kamatis', highPrice: 50.00, lowPrice: 30.00 },
+    ],
+    HighlandVegetables: [
+        { type: 'Bell Pepper', highPrice: 100.00, lowPrice: 80.00 },
+        { type: 'Broccoli', highPrice: 90.00, lowPrice: 70.00 },
+        { type: 'Carrot', highPrice: 70.00, lowPrice: 50.00 },
+        { type: 'White Potato', highPrice: 60.00, lowPrice: 40.00 },
+        { type: 'Pechay(Baguio)', highPrice: 50.00, lowPrice: 40.00 },
+        { type: 'Chayote', highPrice: 50.00, lowPrice: 30.00 },
+        { type: 'Cauliflower', highPrice: 80.00, lowPrice: 60.00 },
+    ],
+    Fruits: [
+        { type: 'Banana (Saba)', highPrice: 50.00, lowPrice: 30.00 },
+        { type: 'Banana (Latundan)', highPrice: 60.00, lowPrice: 40.00 },
+        { type: 'Banana (Lakatan)', highPrice: 55.00, lowPrice: 35.00 },
+        { type: 'Mango (Carabao)', highPrice: 120.00, lowPrice: 90.00 },
+        { type: 'Durian', highPrice: 250.00, lowPrice: 200.00 },
+        { type: 'Pineapple', highPrice: 70.00, lowPrice: 50.00 },
+        { type: 'Papaya', highPrice: 60.00, lowPrice: 40.00 },
+        { type: 'Watermelon', highPrice: 50.00, lowPrice: 30.00 },
+        { type: 'Coconut', highPrice: 40.00, lowPrice: 30.00 },
+        { type: 'Calamansi', highPrice: 70.00, lowPrice: 50.00 },
+        { type: 'Avocado', highPrice: 100.00, lowPrice: 80.00 },
+    ],
+};
+
+export default searchData;

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Dimensions, StatusBar, TextInput, ScrollView, Modal, Animated, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Dimensions, StatusBar, TextInput, ScrollView, Modal, ActivityIndicator } from 'react-native';
 import { BackHandler } from 'react-native';
 import { format } from 'date-fns';
 import AntDesign from '@expo/vector-icons/AntDesign';
@@ -24,7 +24,6 @@ export default function Scheduler({ navigation, route }) {
     const [isLoading, setIsLoading] = useState(false);
     const [isConfirmationModalVisible, setIsConfirmationModalVisible] = useState(false);
     const [isDeleteConfirmationVisible, setIsDeleteConfirmationVisible] = useState(false);
-    const [scheduleConfirmationVisible, setScheduleConfirmationVisible] = useState(false);
     const [date, setDate] = useState(new Date());
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [selectedDate, setSelectedDate] = useState(null);
@@ -124,11 +123,6 @@ export default function Scheduler({ navigation, route }) {
     };    
     
     const handleConfirm = async () => {
-      if (!userId) {
-        Alert.alert('Error', 'User ID is not available. Please log in.');
-        return;
-      }
-      
       setIsConfirmationModalVisible(false);
       setIsLoading(true);
 
@@ -145,12 +139,10 @@ export default function Scheduler({ navigation, route }) {
 
         if (error) {
           console.error('Error inserting schedule', error);
-        } else {
-          console.log('Schedule inserted successfully', data);
         }
-
+      navigation.navigate('Calendar');
       } catch (err) {
-        console.log('Unexpected error during schedule creation:', err);
+        console.error('Unexpected error during schedule creation:', err);
       } finally {
         setIsLoading(false);
       }
@@ -174,23 +166,6 @@ export default function Scheduler({ navigation, route }) {
         setIsTimeCanceled(false);
         setIsDateError(false);
         setIsTimeError(false);
-    };
-
-    const handleAddNewSchedule = () => {
-      setScheduleConfirmationVisible(true);
-    };
-
-    const confirmAddNewSchedule = () => {
-      setScheduleConfirmationVisible(false);
-      setIsUpdate(false);
-      setDescription('');
-      setSelectedDate(null);     
-      setSelectedStartTime(null); 
-      setSelectedEndTime(null); 
-      setIsDateCanceled(false);
-      setIsTimeCanceled(false);
-      setIsDateError(false);
-      setIsTimeError(false);
     };
 
     const handleSelectDate = () => {
@@ -260,16 +235,8 @@ export default function Scheduler({ navigation, route }) {
         <StatusBar hidden={false} />
 
         <View style={styles.productContainer}>
-          <Text style={styles.sectionTitlePost}>Create Schedule</Text>
-
           <View style={styles.wrapperButtons}>
-              <TouchableOpacity style={styles.addButton} onPress={handleAddNewSchedule}>
-                  <View style={styles.iconTextRow}>
-                      <AntDesign name="pluscircleo" size={20} color="black" />
-                      <Text style={styles.buttonText}>Add New Schedule</Text>
-                  </View>
-              </TouchableOpacity>
-
+              <Text style={styles.sectionTitlePost}>Create Schedule</Text>
               <TouchableOpacity style={styles.deleteButton} onPress={handleDeleteSchedule}>
                   <View style={styles.iconTextRow}>
                       <AntDesign name="delete" size={20} color="black" />
@@ -373,7 +340,7 @@ export default function Scheduler({ navigation, route }) {
       <Modal visible={isConfirmationModalVisible} transparent={true} animationType="fade">
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Are you sure you want to {isUpdate ? 'update' : 'create'} this schedule?</Text>
+            <Text style={styles.modalTitle}>Are you sure you want to create this schedule?</Text>
             <View style={styles.modalButtons}>
               <TouchableOpacity style={styles.modalButton} onPress={handleConfirm}>
                 <Text style={styles.modalButtonTextYes}>Yes</Text>
@@ -406,22 +373,6 @@ export default function Scheduler({ navigation, route }) {
           <View style={{ padding: 20, borderRadius: 10, alignItems: 'center' }}>
             <ActivityIndicator size={50} color="#4CAF50" />
             <Text style={{ marginTop: 10, fontFamily: 'medium', color: 'white' }}>{isUpdate ? 'Updating your schedule...' : 'Setting up your schedule...'}</Text>
-          </View>
-        </View>
-      </Modal>
-
-      <Modal visible={scheduleConfirmationVisible} transparent={true} animationType="fade">
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Are you sure you want to add a new schedule?</Text>
-            <View style={styles.modalButtons}>
-              <TouchableOpacity style={styles.modalButton} onPress={confirmAddNewSchedule}>
-                <Text style={styles.modalButtonTextYes}>Yes</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.modalButton} onPress={() => setScheduleConfirmationVisible(false)}>
-                <Text style={styles.modalButtonTextNo}>No</Text>
-              </TouchableOpacity>
-            </View>
           </View>
         </View>
       </Modal>
@@ -519,14 +470,14 @@ const styles = StyleSheet.create({
     marginTop: 50,
   },
   sectionTitlePost: {
-    fontSize: 16,
+    fontSize: 14,
     fontFamily: 'bold',
     color: 'black',
   },
   wrapperButtons: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 10,
+    alignItems: 'center',
   },
   addButton: {
     paddingVertical: 10,

@@ -73,7 +73,6 @@ const PostDetailScreen = ({ route }) => {
           )}
         </View>
       )}
-      <View style={styles.endLine}/>
     </View>
   );
 };

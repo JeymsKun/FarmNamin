@@ -71,8 +71,6 @@ const ConsumerFeedback = () => {
         staleTime: 1000 * 60 * 5,
     });
 
-    console.log('check feedbacks:', feedbackData);
-
     useRealTimeUpdates(userId);
 
     useFocusEffect(
@@ -105,6 +103,14 @@ const ConsumerFeedback = () => {
         );
     };
 
+    const renderEmptyComponent = () => {
+        return (
+            <View style={styles.emptyContainer}>
+                <Text style={styles.emptyText}>No feedback available.</Text>
+            </View>
+        );
+    };
+
     return (
         <FlatList
             data={feedbackData}
@@ -119,6 +125,7 @@ const ConsumerFeedback = () => {
 
                 </View>
             }
+            ListEmptyComponent={renderEmptyComponent}
         />
     );
 };
@@ -228,6 +235,17 @@ const styles = StyleSheet.create({
     textDisplay: {
         fontSize: 12,
         fontFamily: 'regular',
+    },
+    emptyContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 20,
+    },
+    emptyText: {
+        fontSize: 14,
+        fontFamily: 'regular',
+        color: '#888',
     },
 });
 

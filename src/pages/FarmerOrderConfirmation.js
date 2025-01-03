@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { View, Text, Dimensions, StyleSheet, Image, TouchableOpacity, Modal, ScrollView, Alert } from 'react-native';
 import CustomAlert from '../support/CustomAlert';
-import { useAuth } from '../hooks/useAuth';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
+import { format, parseISO } from 'date-fns'
 import { supabase } from '../backend/supabaseClient';
 
 const { width, height } = Dimensions.get('window');
@@ -17,15 +18,55 @@ const FarmerOrderConfirmation = ({ route, navigation }) => {
   const [alertMessage, setAlertMessage] = useState('');
   const [alertTitle, setAlertTitle] = useState('');
 
-  const handleOrderAction = (action) => {
+  const { data: orderData, refetch } = useQuery({
+    queryKey: ['order', order.order_id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('orders')
+        .select('confirm_order')
+        .eq('order_id', order.order_id)
+        .single();
+      if (error) throw new Error(error.message);
+      return data;
+    },
+  });
+
+  const mutation = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase
+        .from('orders')
+        .update({ 
+          confirm_order: true,
+          date_confirmation: new Date().toISOString()
+        })
+        .eq('order_id', order.order_id);
+      if (error) throw new Error(error.message);
+      return data;
+    },
+  });
+
+  const handleOrderAction = async (action) => {
     if (action === 'confirm') {
-      setIsConfirmed(true);
-      showAlert('Order Confirmed', 'You have successfully confirmed the order.');
+      try {
+        await mutation.mutateAsync();
+        showAlert('Order Confirmed', 'You have successfully confirmed the order.');
+        refetch(); 
+      } catch (error) {
+        showAlert('Error', 'Failed to confirm the order. Please try again.');
+      }
     } else if (action === 'cancel') {
       showAlert('Order Canceled', 'You have canceled the order.');
     }
     setModalVisible(false);
   };
+
+  const formatDate = (date) => {
+    try {
+      return format(date ? parseISO(date) : new Date(), " MMMM d, yyyy, hh:mm a");
+    } catch (error) {
+      return 'Invalid Date';
+    }
+  };  
 
   const showAlert = (title, message) => {
     setAlertTitle(title);
@@ -62,6 +103,9 @@ const FarmerOrderConfirmation = ({ route, navigation }) => {
         <View style={styles.orderDetailsContainer}>
           <Text style={styles.orderText}>
             <Text style={styles.boldText}>Order ID:</Text> {order.order_id}
+          </Text>
+          <Text style={styles.orderText}>
+            <Text style={styles.boldText}>Date Ordered:</Text> {formatDate(order.created_at)}
           </Text>
           <Text style={styles.orderText}>
             <Text style={styles.boldText}>Product Ordered:</Text> {order.product_name}
@@ -103,7 +147,9 @@ const FarmerOrderConfirmation = ({ route, navigation }) => {
           style={styles.actionButton}
           onPress={() => setModalVisible(true)}
         >
-          <Text style={styles.actionButtonText}>Order Actions</Text>
+          <Text style={styles.actionButtonText}>
+            {orderData?.confirm_order ? 'Confirmed Order' : 'Order Actions'}
+          </Text>
         </TouchableOpacity>
 
         <Modal
@@ -211,13 +257,13 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   orderText: {
-    fontSize: 14,
+    fontSize: 13,
     fontFamily: 'regular',
     marginBottom: 5,
     color: '#333',
   },
   boldText: {
-    fontSize: 15,
+    fontSize: 14,
     fontFamily: 'medium',
     color: '#333',
   },

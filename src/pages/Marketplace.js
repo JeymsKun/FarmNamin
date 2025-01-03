@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { View, Text, TextInput, StyleSheet, ScrollView, TouchableOpacity, FlatList, Dimensions, StatusBar, Image } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useNavigation } from "@react-navigation/native";
@@ -8,7 +8,7 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import AntDesign from 'react-native-vector-icons/AntDesign';
 import { useDispatch } from 'react-redux';
 import { setProducts } from '../store/allProductSlice'; 
-import { fetchAllProducts, fetchUserFavorites } from '../utils/api';
+import { fetchAllProducts, fetchUserFavorites, fetchNewNotificationCount } from '../utils/api';
 import { useQuery } from '@tanstack/react-query';
 import * as VideoThumbnails from 'expo-video-thumbnails';
 import useRealTimeUpdates from '../hooks/useRealTimeUpdates';
@@ -104,6 +104,7 @@ const Marketplace = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const flatListRef = useRef(null);
   const scrollViewRef = useRef(null);
+  const [newNotificationCount, setNewNotificationCount] = useState(0);
 
   useRealTimeUpdates(user?.id_user);
 
@@ -112,6 +113,21 @@ const Marketplace = () => {
     const productPriceFontSize = item.price > 8 ? 11 : 15; 
     return { productNameFontSize, productPriceFontSize };
   };
+
+  useEffect(() => {
+    const fetchNotificationCount = async () => {
+      if (user?.id_user) {
+        try {
+          const count = await fetchNewNotificationCount(user.id_user);
+          setNewNotificationCount(count);
+        } catch (error) {
+          console.error('Error fetching new notification count:', error.message);
+        }
+      }
+    };
+
+    fetchNotificationCount();
+  }, [user]);
 
   const { data: fetchProducts = [], isLoading: loadingProducts, refetch: refetchAllProducts } = useQuery({
     queryKey: ['products'], 
@@ -130,6 +146,7 @@ const Marketplace = () => {
     staleTime: 1000 * 60 * 5,
   });
 
+
   useFocusEffect(
     useCallback(() => {
       if (!isProductDetailActive) {
@@ -146,11 +163,17 @@ const Marketplace = () => {
   
   const filteredProducts = fetchProducts.filter(product => {
     const matchesCategory = activeCategory === 'All' || 
-      (activeCategory === 'Recent' && new Date(product.created_at).toDateString() === new Date().toDateString()) || 
-      product.category === activeCategory; 
-
+        (activeCategory === 'Recent' && new Date(product.created_at).toDateString() === new Date().toDateString()) || 
+        product.category === activeCategory; 
+        
     const matchesSearch = product.name.includes(searchQuery);
-    return matchesCategory && matchesSearch;
+
+    const availableMatch = product.available.match(/(\d+(\.\d+)?)/);
+    const availableQuantity = availableMatch ? parseFloat(availableMatch[0]) : 0;
+
+    const isAvailable = availableQuantity > 0 && !product.done_product;
+
+    return matchesCategory && matchesSearch && isAvailable; 
   });
 
   const formatPrice = (price) => {
@@ -167,20 +190,19 @@ const Marketplace = () => {
       <View style={styles.headerContainer}>
         <View style={styles.headerWrapper}>  
           <Text style={styles.headerText}>Welcome to Marketplace</Text>
-          <TouchableOpacity>
-            <AntDesign name="questioncircleo" size={15} color="black" />
-          </TouchableOpacity>
         </View>
 
         <View style={styles.notificationButton}>
-          <TouchableOpacity onPress={() => navigation.navigate('Notification')}>
+          <TouchableOpacity onPress={() => navigation.navigate('NotificationConsumer')}>
             <Text style={styles.notificationText}>Notification</Text>
           </TouchableOpacity>
           
           <Icon name="bell" size={24} color="green" />
-          <View style={styles.notificationBadge}>
-            <Text style={styles.notificationCount}>3</Text>
-          </View>
+          {newNotificationCount > 0 && (
+            <View style={styles.notificationBadge}>
+              <Text style={styles.notificationCount}>{newNotificationCount}</Text>
+            </View>
+          )}
         </View>
       </View>
     );
@@ -254,8 +276,6 @@ const Marketplace = () => {
       </View>
     );
   };
-
-
 
   const handleRefresh = () => {
     refetchAllProducts();
@@ -482,8 +502,8 @@ const styles = StyleSheet.create({
   },
   notificationCount: {
     color: '#FFF',
-    fontSize: 10,
-    fontFamily: 'Poppins-Bold',
+    fontSize: 14,
+    fontFamily: 'medium',
   },
 });
 

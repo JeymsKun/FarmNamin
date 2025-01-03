@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Dimensions, StatusBar, TextInput, ScrollView, Modal, Animated, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Dimensions, StatusBar, TextInput, ScrollView, Modal, ActivityIndicator } from 'react-native';
 import AntDesign from '@expo/vector-icons/AntDesign';
 import Feather from '@expo/vector-icons/Feather';
 import * as ImagePicker from 'expo-image-picker';
@@ -8,30 +8,35 @@ import { decode } from 'base64-arraybuffer';
 import { v4 as uuidv4 } from 'uuid';
 import { supabase } from '../backend/supabaseClient';
 import { useAuth } from '../hooks/useAuth';
-
-const baseUrl = 'https://vysmsuskuwjvomdgjtlu.supabase.co/storage/v1/object/public/images/';
+import { useNavigation } from '@react-navigation/native';
+import { formatISO } from 'date-fns';
 
 const { width, height } = Dimensions.get('window');
 
+const scaleFontSize = (size) => {
+  return size * (width / 375);
+};
+
 const MAX_LENGTH = 150;
 
-export default function Post({ navigation, route }) {
+export default function Post({ route }) {
   const { postToEdit } = route.params || {};
   const { user } = useAuth(); 
+  const navigation = useNavigation();
   const userId = user?.id_user;
   const [location, setLocation] = useState('');
   const [description, setDescription] = useState('');
   const [images, setImages] = useState([]);
   const [showInfoMessage, setShowInfoMessage] = useState(false);
-  const [showInfoMessageAdditional, setShowInfoMessageAdditional] = useState(false);
   const [focusedLocation, setFocusedLocation] = useState(false);
   const [focusedDescription, setFocusedDescription] = useState(false);
-  const [additionalDetails, setAdditionalDetails] = useState([]);
-  const [isAlertVisible, setIsAlertVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isConfirmationModalVisible, setIsConfirmationModalVisible] = useState(false);
   const [isDeleteConfirmationVisible, setIsDeleteConfirmationVisible] = useState(false);
   const [isAddPostConfirmationVisible, setIsAddPostConfirmationVisible] = useState(false);
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertMessage, setAlertMessage] = useState('');
+  const [alertTitle, setAlertTitle] = useState('');
 
   useEffect(() => {
     if (postToEdit) {
@@ -44,22 +49,19 @@ export default function Post({ navigation, route }) {
   useEffect(() => {
     const clearMessage = () => {
       setShowInfoMessage(false);
-      setShowInfoMessageAdditional(false);
     };
 
     let timer;
-    if (showInfoMessage || showInfoMessageAdditional) {
+    if (showInfoMessage) {
       timer = setTimeout(clearMessage, 4000); 
     }
 
     return () => clearTimeout(timer); 
-  }, [showInfoMessage, showInfoMessageAdditional]);
+  }, [showInfoMessage]);
 
   const renderHeader = () => (
     <View style={styles.header}>
-
       <Text style={styles.headerTextTop}>Welcome to</Text>
-
       <View style={styles.headerRow}>
         <View style={styles.rowProductTitle}>
           <Text style={styles.headerTextBottom}>Farmer Management Tool</Text>
@@ -84,167 +86,110 @@ export default function Post({ navigation, route }) {
     </View>
   );
 
-  useEffect(() => {
-    if (additionalDetails.length > 0) {
-      const newAnimations = additionalDetails.map(() => new Animated.Value(0));
-      setAnimations(newAnimations);
-    }
-  }, [additionalDetails]);
-
   const handleDescriptionChange = (text) => {
     if (text.length <= MAX_LENGTH) {
       setDescription(text);
     }
   };
 
-    const handleDeleteMediaItem = async (index) => {
-      const itemToDelete = images[index];
+  const handleDeleteMediaItem = async (index) => {
+    const itemToDelete = images[index];
 
-      if (postToEdit) {
+    if (postToEdit) {
 
-        const { error } = await supabase.storage.from('images').remove([itemToDelete.uri]);
-        if (error) {
-          console.error('Error deleting image from storage:', error);
-          Alert.alert('Error', 'There was an error deleting the image. Please try again.');
-          return;
-        }
-      }
-
-      const updatedImages = images.filter((_, i) => i !== index);
-      setImages(updatedImages);
-    };
-
-    const handleDone = () => {
-        if (images.length === 0 || description.trim() === '' || location.trim() === '') {
-            setIsAlertVisible(true);
-        } else {
-            setIsConfirmationModalVisible(true); 
-        }
-    };
-
-    const handleUploadImageToSupabase = async (image) => {
-
-      try {
-        const response = await fetch(image.uri);
-        const blob = await response.blob();
-        const reader = new FileReader();
-        reader.readAsDataURL(blob);
-        reader.onloadend = async () => {
-          const base64data = reader.result; 
-          const base64FileData = base64data.split(',')[1]; 
-          const arrayBuffer = decode(base64FileData);
-
-          const { error } = await supabase
-            .storage
-            .from('images')
-            .upload(`${uuidv4()}.png`, arrayBuffer, {
-              contentType: 'image/png',
-            });
-  
-          if (error) {
-            console.error('Error uploading image:', error);
-            return null; 
-          }
-  
-          console.log('Image uploaded successfully');
-        };
-      } catch (error) {
-        console.error('Error uploading image:', error);
-      }
-    };
-
-    const handleConfirm = async () => {
-      if (!userId) {
-        Alert.alert('Error', 'User  ID is not available. Please log in.');
+      const { error } = await supabase.storage.from('images').remove([itemToDelete.uri]);
+      if (error) {
+        console.error('Error deleting image from storage:', error);
+        showAlert('Error', 'There was an error deleting the image. Please try again.');
         return;
       }
-    
-      setIsConfirmationModalVisible(false);
-      setIsLoading(true);
-    
-      try {
+    }
 
-        const existingImages = postToEdit ? postToEdit.images : [];
-        const newImages = images.filter(image => !image.uri.startsWith(baseUrl)); 
+    const updatedImages = images.filter((_, i) => i !== index);
+    setImages(updatedImages);
+  };
 
-        const imagesToUpload = newImages.filter(image => {
-          const imageName = image.uri.split('/').pop(); 
-          return !existingImages.some(existingImage => existingImage.endsWith(imageName));
-        });
+  const handleDone = () => {
+    if (images.length === 0) {
+      showAlert('Empty Photo', 'Your Photo is empty. Please add at least one image.');
+    } else if (description.trim() === '') {
+      showAlert('Empty Description', 'Your Description is empty. Please provide a description.');
+    } else if (location.trim() === '') {
+      showAlert('Empty Location', 'Your Location is empty. Please provide a location.');
+    } else {
+      setIsConfirmationModalVisible(true); 
+    }
+  };
 
-        await Promise.all(imagesToUpload.map(image => handleUploadImageToSupabase(image)));
-    
-        if (postToEdit) {
-          const { data, error } = await supabase
-            .from('posts')
-            .update({
-              description: description,
-              location: location,
-              images: images.map(image => image.uri),
-              created_at: new Date().toISOString(),
-            })
-            .eq('id', postToEdit.id);
-    
-          if (error) {
-            console.error('Error updating post:', error);
-            Alert.alert('Error', 'There was an error updating your post. Please try again.');
-          } else {
-            const imagesToDelete = existingImages.filter(existingImage => !images.some(image => image.uri === existingImage));
-    
-            console.log('Images to delete:', imagesToDelete);
-    
-            const validImagesToDelete = imagesToDelete.filter(imageUri => typeof imageUri === 'string' && imageUri.trim() !== '');
-    
-            if (validImagesToDelete.length > 0) {
-              const { error } = await supabase.storage.from('images').remove(validImagesToDelete);
-              if (error) {
-                console.error('Error deleting image from storage:', error);
-              }
-            }
-    
-            console.log('Post updated successfully:', data);
-            Alert.alert('Success', 'Post updated successfully');
-            navigation.goBack();
-          }
-        } else {
-          const { data, error } = await supabase
-            .from('posts')
-            .insert({
-              id_user: userId,
-              description: description,
-              location: location,
-              images: images.map(image => image.uri),
-              created_at: new Date().toISOString(),
-            });
-    
-          if (error) {
-            console.error('Error creating post:', error);
-            Alert.alert('Error', 'There was an error creating your post. Please try again.');
-          } else {
-            console.log('Post created successfully:', data);
-            Alert.alert('Success', 'Post created successfully');
-          }
+  const handleUploadImageToSupabase = async (image) => {
+    try {
+      const response = await fetch(image.uri);
+      const blob = await response.blob();
+      const reader = new FileReader();
+      reader.readAsDataURL(blob);
+      reader.onloadend = async () => {
+        const base64data = reader.result; 
+        const base64FileData = base64data.split(',')[1]; 
+        const arrayBuffer = decode(base64FileData);
+
+        const { error } = await supabase
+          .storage
+          .from('images')
+          .upload(`${uuidv4()}.png`, arrayBuffer, {
+            contentType: 'image/png',
+          });
+
+        if (error) {
+          console.error('Error uploading image:', error);
+          return null; 
         }
-      } catch (error) {
-        console.error('Unexpected error during post operation:', error);
-        Alert.alert('Error', 'An unexpected error occurred. Please try again.');
-      } finally {
-        setIsLoading(false);
-      }
-    };
+
+      };
+    } catch (error) {
+      console.error('Error uploading image:', error);
+    }
+  };
+
+  const handleConfirm = async () => {
+    setIsConfirmationModalVisible(false);
+    setIsLoading(true);
+  
+    try {
+      await Promise.all(images.map(image => handleUploadImageToSupabase(image)));
+
+      const currentDate = new Date();
+      const utcDate = formatISO(currentDate, { representation: 'complete' });
+
+        const { data, error } = await supabase
+          .from('posts')
+          .insert({
+            id_user: userId,
+            description: description,
+            location: location,
+            images: images.map(image => image.uri), 
+            created_at: utcDate,
+          });
+  
+        if (error) {
+          console.error('Error creating post:', error);
+          showAlert('Error', 'There was an error creating your post. Please try again.');
+        } else {
+          showAlert('Success', 'Post created successfully');
+        }
+      
+      navigation.navigate('Product');
+
+    } catch (error) {
+      console.error('Unexpected error during post operation:', error);
+      showAlert('Error', 'An unexpected error occurred. Please try again.');
+
+    } finally {
+      setIsLoading(false);
+    }
+  };
     
   const handleCancel = () => {
     setIsConfirmationModalVisible(false); 
-  };
-
-  const renderAlertMessage = () => {
-    if (images.length === 0) {
-      return 'Your Photo is empty';
-    } else if (description.trim() === '') {
-      return 'Your Description is empty';
-    } else if (location.trim() === '') {
-      return 'Your Location is empty';
-    }
   };
 
   const handleDeletePost = () => {
@@ -258,8 +203,10 @@ export default function Post({ navigation, route }) {
     setImages([]);
   };
 
-  const handleAddNewPost = () => {
-    setIsAddPostConfirmationVisible(true);
+  const showAlert = (title, message) => {
+    setAlertTitle(title);
+    setAlertMessage(message);
+    setAlertVisible(true);
   };
 
   const confirmAddNewPost = () => {
@@ -269,6 +216,7 @@ export default function Post({ navigation, route }) {
     setImages([]);
     setFocusedDescription(false);
     setFocusedLocation(false);
+    navigation.navigate('Post');
   };
 
   const renderMediaList = () => {
@@ -290,7 +238,7 @@ export default function Post({ navigation, route }) {
         {images.map((item, index) => (
           <ScrollView horizontal showsHorizontalScrollIndicator={false} key={index}>
             <TouchableOpacity key={`${item.uri}-${index}`} style={styles.mediaItemContainer} onPress={() => handlePressMediaItem(item)}>
-              <TouchableOpacity style={styles.deleteButton} onPress={() => handleDeleteMediaItem(index)}>
+              <TouchableOpacity style={styles.deleteMediaButton} onPress={() => handleDeleteMediaItem(index)}>
                 <AntDesign name="delete" size={20} color="#FF0000" />
               </TouchableOpacity>
               <View style={[styles.mediaDetailsRow, { flexDirection: 'row', alignItems: 'center' }]}>
@@ -322,67 +270,59 @@ export default function Post({ navigation, route }) {
   );
 
   const handlePressMediaItem = (item) => {
-    console.log('Media Item:', item);
     if (item.type === 'image') {
         navigation.navigate('ImageViewer', { uri: item.uri });
     } else {
-        console.warn('Unsupported document type:', item.type); 
+      showAlert('Unsupported Image', `The file type "${item.type}" is not supported.`);
     }
   };
 
   const handleOpenGallery = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permission to access camera roll is required!');
+      showAlert('Permission to access camera roll is required!');
       return;
     }
 
     let result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['images'],
-        allowsMultipleSelection: true,
-        aspect: [4, 3],
-        quality: 1,
+      mediaTypes: ['images'],
+      allowsMultipleSelection: true,
+      aspect: [4, 3],
+      quality: 1,
     });
-  
-    console.log(result);
 
     if (!result.canceled) {
-        const newImages = result.assets.map(asset => ({
-            uri: asset.uri,
-            type: asset.type,
-            name: asset.fileName || 'Uploaded Media',
-        }));
-        setImages((prevImages) => [...prevImages, ...newImages]);
+      const newImages = result.assets.map(asset => ({
+        uri: asset.uri,
+        type: asset.type,
+        name: asset.fileName || 'Uploaded Media',
+      }));
+      setImages((prevImages) => [...prevImages, ...newImages]);
     }
   };
 
   const handleOpenCamera = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== 'granted') {
-        Alert.alert('Permission to access camera is required!');
-        return;
+      showAlert('Permission to access camera is required!');
+      return;
     }
 
     let result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ['images'],
-        allowsEditing: true,
-        aspect: [4, 3],
-        quality: 1,
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 1,
     });
 
-    console.log(result);
-
     if (!result.canceled) {
-        setImages((prevImages) => [
-            ...prevImages,
-            {
-                uri: result.assets[0].uri,
-                type: result.assets[0].type,
-                name: result.assets[0].fileName || 'Uploaded Media',
-            },
-        ]);
-    } else {
-        console.log('Camera was canceled');
+      const newImage = {
+        uri: result.assets[0].uri,
+        type: result.assets[0].type,
+        name: result.assets[0].fileName || 'Uploaded Media',
+      };
+ 
+      setImages((prevImages) => [...prevImages, newImage]);
     }
   };
   
@@ -394,12 +334,6 @@ export default function Post({ navigation, route }) {
         <View style={styles.productContainer}>
           <View style={styles.actionButtons}>
             <Text style={styles.sectionTitlePost}>Create Post</Text>
-            <TouchableOpacity style={styles.addButton} onPress={handleAddNewPost}>
-              <View style={styles.iconTextRow}>
-                <AntDesign name="pluscircleo" size={20} color="black" />
-                <Text style={styles.buttonText}>Add New Post</Text>
-              </View>
-            </TouchableOpacity>
             <TouchableOpacity style={styles.deleteButton} onPress={handleDeletePost}>
               <View style={styles.iconTextRow}>
                 <AntDesign name="delete" size={20} color="black" />
@@ -409,7 +343,6 @@ export default function Post({ navigation, route }) {
           </View>
         </View>
 
-        {/* Image Placeholder with Dynamic Height */}
         <View style={styles.imagePlaceholder}>
           {renderMediaList()}
         </View>
@@ -441,7 +374,6 @@ export default function Post({ navigation, route }) {
             />
           </View>
 
-            {/* Done Button at the bottom */}
             <View style={styles.footerButtons}>
                 <TouchableOpacity style={styles.doneButton} onPress={handleDone}>
                     <Text style={styles.doneText}>Done</Text>
@@ -451,74 +383,69 @@ export default function Post({ navigation, route }) {
         </View>
       </ScrollView>
 
-
-        {/* Confirmation Modal */}
-        <Modal visible={isConfirmationModalVisible} transparent={true} animationType="fade">
-          <View style={styles.modalContainer}>
-            <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>Are you sure you want to post this?</Text>
-              <View style={styles.modalButtons}>
-                <TouchableOpacity style={styles.modalButton} onPress={handleConfirm}>
-                  <Text style={styles.modalButtonTextYes}>Yes</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.modalButton} onPress={handleCancel}>
-                  <Text style={styles.modalButtonTextNo}>No</Text>
-                </TouchableOpacity>
-              </View>
+      <Modal visible={isConfirmationModalVisible} transparent={true} animationType="fade">
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Are you sure you want to post this?</Text>
+            <View style={styles.modalButtons}>
+              <TouchableOpacity style={styles.modalButton} onPress={handleConfirm}>
+                <Text style={styles.modalButtonTextYes}>Yes</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.modalButton} onPress={handleCancel}>
+                <Text style={styles.modalButtonTextNo}>No</Text>
+              </TouchableOpacity>
             </View>
           </View>
-        </Modal>
+        </View>
+      </Modal>
 
-        <CustomAlert 
-          visible={isAlertVisible} 
-          title="Empty Input" 
-          message={renderAlertMessage()} 
-          onClose={() => setIsAlertVisible(false)} 
-        />
+      <CustomAlert 
+        visible={alertVisible} 
+        title={alertTitle} 
+        message={alertMessage} 
+        onClose={() => setAlertVisible(false)} 
+      />
 
-        {/* Loading Modal */}
-        <Modal visible={isLoading} transparent={true} animationType="fade">
-          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0, 0, 0, 0.5)' }}>
-            <View style={{ padding: 20, borderRadius: 10, alignItems: 'center' }}>
-                <ActivityIndicator size={50} color="#4CAF50" />
-              <Text style={{ marginTop: 10, fontFamily: 'Poppins-Medium', color: 'white' }}>Uploading Photo...</Text>
+      <Modal visible={isLoading} transparent={true} animationType="fade">
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0, 0, 0, 0.5)' }}>
+          <View style={{ padding: 20, borderRadius: 10, alignItems: 'center' }}>
+              <ActivityIndicator size={50} color="#4CAF50" />
+            <Text style={{ marginTop: 10, fontFamily: 'medium', color: 'white' }}>Uploading Photo...</Text>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal visible={isAddPostConfirmationVisible} transparent={true} animationType="fade">
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Are you sure you want to add a new post?</Text>
+            <View style={styles.modalButtons}>
+              <TouchableOpacity style={styles.modalButton} onPress={confirmAddNewPost}>
+                <Text style={styles.modalButtonTextYes}>Yes</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.modalButton} onPress={() => setIsAddPostConfirmationVisible(false)}>
+                <Text style={styles.modalButtonTextNo}>No</Text>
+              </TouchableOpacity>
             </View>
           </View>
-        </Modal>
+        </View>
+      </Modal>
 
-        {/* Add New Post Confirmation Modal */}
-        <Modal visible={isAddPostConfirmationVisible} transparent={true} animationType="fade">
-          <View style={styles.modalContainer}>
-            <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>Are you sure you want to add a new post?</Text>
-              <View style={styles.modalButtons}>
-                <TouchableOpacity style={styles.modalButton} onPress={confirmAddNewPost}>
-                  <Text style={styles.modalButtonTextYes}>Yes</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.modalButton} onPress={() => setIsAddPostConfirmationVisible(false)}>
-                  <Text style={styles.modalButtonTextNo}>No</Text>
-                </TouchableOpacity>
-              </View>
+      <Modal visible={isDeleteConfirmationVisible} transparent={true} animationType="fade">
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Are you sure you want to delete all posts?</Text>
+            <View style={styles.modalButtons}>
+              <TouchableOpacity style={styles.modalButton} onPress={confirmDeletePost}>
+                <Text style={styles.modalButtonTextYes}>Yes</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.modalButton} onPress={() => setIsDeleteConfirmationVisible(false)}>
+                <Text style={styles.modalButtonTextNo}>No</Text>
+              </TouchableOpacity>
             </View>
           </View>
-        </Modal>
-
-        {/* Delete Confirmation Modal */}
-        <Modal visible={isDeleteConfirmationVisible} transparent={true} animationType="fade">
-          <View style={styles.modalContainer}>
-            <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>Are you sure you want to delete all posts?</Text>
-              <View style={styles.modalButtons}>
-                <TouchableOpacity style={styles.modalButton} onPress={confirmDeletePost}>
-                  <Text style={styles.modalButtonTextYes}>Yes</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.modalButton} onPress={() => setIsDeleteConfirmationVisible(false)}>
-                  <Text style={styles.modalButtonTextNo}>No</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        </Modal>
+        </View>
+      </Modal>
     </>
   );
 }
@@ -539,7 +466,7 @@ const styles = StyleSheet.create({
     zIndex: 10, 
   },
   headerTextTop: {
-    fontSize: width > 400 ? 16 : 12,
+    fontSize: scaleFontSize(12),
     fontFamily: 'bold',
     color: 'white',
     paddingHorizontal: 10, 
@@ -560,7 +487,7 @@ const styles = StyleSheet.create({
     padding: 5,
   },
   headerTextBottom: {
-    fontSize: 12,
+    fontSize: scaleFontSize(12),
     fontFamily: 'bold',
     color: 'white',
   },
@@ -577,7 +504,7 @@ const styles = StyleSheet.create({
   },
   infoText: {
     fontFamily: 'regular',
-    fontSize: 12,
+    fontSize: scaleFontSize(12),
     color: '#333',
   },
   infoMessageAdditional: {
@@ -594,14 +521,16 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   sectionTitlePost: {
-    fontSize: 14,
+    textAlign: 'left',
+    fontSize: scaleFontSize(14),
     fontFamily: 'bold',
     color: 'black',
     padding: 10,
   },
   actionButtons: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    alignItems: 'center',
+    position: 'relative',
   },
   addButton: {
     padding: 10,
@@ -609,7 +538,11 @@ const styles = StyleSheet.create({
   },
   deleteButton: {
     padding: 10,
-    borderRadius: 5,
+    position: 'absolute',
+    right: 0,
+  },
+  deleteMediaButton: {
+    padding: 10,
   },
   iconTextRow: {
     flexDirection: 'row',
@@ -617,7 +550,7 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     marginLeft: 5,
-    fontSize: 12,
+    fontSize: scaleFontSize(12),
     fontFamily: 'medium',
   },
   actionButtonsImage: {
@@ -635,14 +568,13 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   buttonTextImage: {
-    fontSize: 14,
+    fontSize: scaleFontSize(14),
     color: '#FFFFFF',
     textAlign: 'center',
     fontFamily: 'medium'
   },
   productContainer: {
-    alignItems: 'center',
-    margin: 50,
+    marginVertical: 50,
     borderRadius: 5, 
   },
   imagePlaceholder: {
@@ -671,7 +603,7 @@ const styles = StyleSheet.create({
   },
   inputDescription: {
     color: 'black',
-    fontSize: 13,
+    fontSize: scaleFontSize(13),
     fontFamily: 'medium',
     marginHorizontal: 8,
     padding: 10,
@@ -680,7 +612,7 @@ const styles = StyleSheet.create({
   },
   input: {
     color: 'black',
-    fontSize: 13,
+    fontSize: scaleFontSize(13),
     fontFamily: 'medium',
     marginHorizontal: 8,
     padding: 10,
@@ -700,11 +632,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'flex-end', 
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 50,
   },
   doneText: {
     padding: 5,
-    fontSize: 14,
+    fontSize: scaleFontSize(14),
     color: "#28B805",  
     fontFamily: 'bold',
   },
@@ -716,7 +648,7 @@ const styles = StyleSheet.create({
      marginLeft: 10,
   },
   mediaFileName: {
-    fontSize: 14,
+    fontSize: scaleFontSize(14),
     fontFamily: 'regular',
     color: '#666',
     marginLeft: 10,
@@ -759,12 +691,12 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   mediaListButtonText: {
-    fontSize: 14,
+    fontSize: scaleFontSize(14),
     fontFamily: 'medium',
     color: '#333',
   },
   inputTitles: {
-    fontSize: 14,
+    fontSize: scaleFontSize(14),
     fontFamily: 'regular',
   },
   errorBorder: {
@@ -788,15 +720,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalTitle: {
-    fontSize: 14,
+    fontSize: scaleFontSize(14),
     textAlign: 'center',
     fontFamily: 'medium',
-  },
-  modalMessage: {
-    fontSize: 14,
-    fontFamily: 'regular',
-    color: '#666',
-    marginVertical: 10,
   },
   modalButtons: {
     flexDirection: 'row',
@@ -810,12 +736,12 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   modalButtonTextYes: {
-    fontSize: 14,
+    fontSize: scaleFontSize(14),
     color: '#4CAF50',
     fontFamily: 'medium',
   },
   modalButtonTextNo: {
-    fontSize: 14,
+    fontSize: scaleFontSize(14),
     color: '#F44336',
     fontFamily: 'medium',
   },

@@ -1,7 +1,5 @@
 import React, { useState } from "react";
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ScrollView, Dimensions } from "react-native";
-import { decode } from 'base64-arraybuffer';
-import { v4 as uuidv4 } from 'uuid';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Dimensions } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { useFocusEffect } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -10,7 +8,6 @@ import { useQuery } from '@tanstack/react-query';
 import { useDispatch } from 'react-redux';
 import { fetchProfileData } from '../utils/api';
 import { setProfile } from '../store/profileSlice';
-import { supabase } from '../backend/supabaseClient';
 import useRealTimeUpdates from '../hooks/useRealTimeUpdates';
 import CustomAlert from '../support/CustomAlert';
 
@@ -19,12 +16,10 @@ const { width, height } = Dimensions.get('window');
 const VerificationScreen = () => {
   const { user } = useAuth();
   const navigation = useNavigation();
-  const userId = user?.id_user;
   const dispatch = useDispatch();
   const [email, setEmail] = useState('');
   const [verificationCode, setVerificationCode] = useState("");
   const [contactVerificationCode, setContactVerificationCode] = useState("");
-  const [documentNames, setDocumentNames] = useState([]);
   const [contactNumber, setContactNumber] = useState("09359335222");
   const [isCodeSent, setIsCodeSent] = useState(false);
   const [isContactCodeSent, setIsContactCodeSent] = useState(false);

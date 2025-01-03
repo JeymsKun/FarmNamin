@@ -215,40 +215,39 @@ const WeatherScreeen = () => {
                     )}
                 </View>
 
-                {/* Display weather details before the Picker */}
                 {loading ? (
-                <View style={styles.loadingContainer}>
-                    <ActivityIndicator size={30} color="#4CAF50" />
-                </View>
+                    <View style={styles.loadingContainer}>
+                        <ActivityIndicator size={30} color="#4CAF50" />
+                    </View>
                 ) : weather ? (
-                <View style={styles.card}>
-                    <Text style={styles.cardTitle}>Weather in {weather.name}</Text>
-                    <View style={styles.weatherInfo}>
-                    <Image
-                        source={{
-                        uri: `https://openweathermap.org/img/wn/${weather.weather[0].icon}@4x.png`,
-                        }}
-                        style={styles.icon}
-                    />
-                    <View style={styles.weatherDetails}>
-                        <Text style={styles.label}>Temperature:</Text>
-                        <Text style={styles.temperature}>
-                            {weather.main.temp} °C - {getTemperatureStatus(weather.main.temp)}
-                        </Text>
-                        <Text style={styles.condition}>
-                            Condition: <Text style={getConditionStyle(weather.weather[0].main)}>{weather.weather[0].description}</Text>
-                        </Text>
-                        <Text style={styles.label}>Humidity:</Text>
-                        <Text style={[styles.humidity, getHumidityStyle(weather.main.humidity)]}>
-                            {weather.main.humidity}%
-                        </Text>
-                        <Text style={styles.label}>Wind Speed:</Text>
-                        <Text style={[styles.windSpeed, getWindSpeedStyle(weather.wind.speed)]}>
-                            {weather.wind.speed} m/s
-                        </Text>
+                    <View style={styles.card}>
+                        <Text style={styles.cardTitle}>Weather in {weather.name}</Text>
+                        <View style={styles.weatherInfo}>
+                        <Image
+                            source={{
+                            uri: `https://openweathermap.org/img/wn/${weather.weather[0].icon}@4x.png`,
+                            }}
+                            style={styles.icon}
+                        />
+                        <View style={styles.weatherDetails}>
+                            <Text style={styles.label}>Temperature:</Text>
+                            <Text style={styles.temperature}>
+                                {weather.main.temp} °C - {getTemperatureStatus(weather.main.temp)}
+                            </Text>
+                            <Text style={styles.condition}>
+                                Condition: <Text style={getConditionStyle(weather.weather[0].main)}>{weather.weather[0].description}</Text>
+                            </Text>
+                            <Text style={styles.label}>Humidity:</Text>
+                            <Text style={[styles.humidity, getHumidityStyle(weather.main.humidity)]}>
+                                {weather.main.humidity}%
+                            </Text>
+                            <Text style={styles.label}>Wind Speed:</Text>
+                            <Text style={[styles.windSpeed, getWindSpeedStyle(weather.wind.speed)]}>
+                                {weather.wind.speed} m/s
+                            </Text>
+                        </View>
+                        </View>
                     </View>
-                    </View>
-                </View>
                 ) : null}
 
                 {/* Move the Picker below the weather details */}
@@ -409,7 +408,7 @@ const styles = StyleSheet.create({
     loadingContainer: {
         alignItems: 'center',
         justifyContent: 'center',
-        height: 220,
+        height: 'auto',
     },    
     card: {
         marginTop: 10,
@@ -417,7 +416,7 @@ const styles = StyleSheet.create({
         borderRadius: 10,
         padding: 15,
         elevation: 2, 
-        height: 220,
+        height: 'auto',
     },
     cardTitle: {
         fontSize: 15,

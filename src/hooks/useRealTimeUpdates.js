@@ -2,8 +2,10 @@ import { useEffect } from 'react';
 import { supabase } from '../backend/supabaseClient';
 import { useDispatch } from 'react-redux';
 import { setProducts, setProfile } from '../store/profileSlice';
-import { fetchProfileData, fetchUserProducts } from '../utils/api';
+import { fetchProfileData, fetchUserProducts, fetchBalances } from '../utils/api';
 import { setFavorites } from '../store/favoritesSlice';
+import { setSchedules } from '../store/scheduleSlice';
+import { setBalances } from '../store/balanceSlice';
 
 const useRealTimeUpdates = (userId) => {
   const dispatch = useDispatch();
@@ -41,10 +43,36 @@ const useRealTimeUpdates = (userId) => {
       })
       .subscribe();
 
+    const schedulesSubscription = supabase
+      .channel('database_changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'schedules' }, async () => {
+        const { data: schedulesData, error } = await supabase
+          .from('schedules')
+          .select('*')
+          .eq('id_user', userId);
+
+        if (error) {
+          console.error('Error fetching schedules:', error.message);
+        } else {
+          dispatch(setSchedules(schedulesData)); 
+        }
+      })
+      .subscribe();
+
+      const balanceSubscription = supabase
+        .channel('database_changes')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'overviewbalance' }, async () => {
+            const balances = await fetchBalances(userId);
+            dispatch(setBalances(balances)); 
+        })
+        .subscribe();
+
     return () => {
       supabase.removeChannel(productSubscription);
       supabase.removeChannel(profileSubscription);
       supabase.removeChannel(favoritesSubscription);
+      supabase.removeChannel(schedulesSubscription);
+      supabase.removeChannel(balanceSubscription);
     };
   }, [userId, dispatch]);
 };

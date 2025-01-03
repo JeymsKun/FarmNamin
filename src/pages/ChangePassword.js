@@ -53,10 +53,7 @@ export default function SignUpScreen({ navigation, route }) {
       setLoading(false); 
       return;
     }
-
-    console.log('Password:', password);
-    console.log('Confirm Password:', confirmPassword);
-
+    
     InsertRecord();
   };
 

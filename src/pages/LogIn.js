@@ -38,10 +38,6 @@ export default function LogIn({ navigation, route }) {
         const user = await signInWithEmailPassword(email, password);
 
         if (user) {
-          if (!user.id_user) {
-            Alert.alert('Critical Error', 'User ID not found.');
-            return;
-          }
 
           if (user.role !== role) {
             setAlertTitle('Role Mismatch Detected');
@@ -59,11 +55,16 @@ export default function LogIn({ navigation, route }) {
             }
           }
         }
-    } catch (error) {
-      Alert.alert("Error", error.message);
-    } finally {
-      setLoading(false);
-    }
+      } catch (error) {
+        console.error("Error", error.message);
+        if (error.message.includes('not found')) {
+          setErrorEmail(true); 
+        } else {
+          setErrorPassword(true); 
+        }
+      } finally {
+        setLoading(false);
+      }
   };
 
   const headerImage =
@@ -151,7 +152,7 @@ export default function LogIn({ navigation, route }) {
               )}
 
               {errorPassword && (
-                <Text style={styles.errorText}>* Incorrect password or click "Forgot password?" to reset it.</Text>
+                <Text style={styles.errorText}>* Incorrect password.</Text>
               )}
             </View>
 

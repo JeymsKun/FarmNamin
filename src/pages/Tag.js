@@ -26,12 +26,21 @@ export default function Tag({ navigation }) {
     const [isConfirmationModalVisible, setIsConfirmationModalVisible] = useState(false);
     const [balanceDeleteConfirmationVisible, setBalanceDeleteConfirmationVisible] = useState(false);
     const [balanceConfirmationVisible, setBalanceConfirmationVisible] = useState(false);
-    const [isUpdate, setIsUpdate] = useState(null);
     const [tag, setTag] = useState([]);
+    const [alertVisible, setAlertVisible] = useState(false);
+    const [alertMessage, setAlertMessage] = useState('');
+    const [alertTitle, setAlertTitle] = useState('');
+
+    const showAlert = (title, message) => {
+        setAlertTitle(title);
+        setAlertMessage(message);
+        setAlertVisible(true);
+    };
+    
     
     useEffect(() => {
       const backAction = () => {
-        navigation.navigate('TraceAndTrace'); 
+        navigation.navigate('TraceAndTrack'); 
         return true; 
       };
   
@@ -129,9 +138,6 @@ export default function Tag({ navigation }) {
         if (tag.length === 0) {
             setIsAlertVisible(true);
             return;
-        } else if (!userId) {
-            Alert.alert('Error', 'User ID is not available. Please log in.');
-            return;
         }
     
         try {
@@ -151,18 +157,18 @@ export default function Tag({ navigation }) {
               .insert(tagData);
       
             if (error) {
-              console.error('Failed to save tags', error.message);
-              Alert.alert('Error', 'An error occurred while saving your tags.');
-              return;
+                console.error('Failed to save tags', error.message);
+                showAlert('Error', 'An error occurred while saving your tags.');
+                return;
             }
-      
-            console.log('Tags successfully added', data);
 
-            Alert.alert('Success', 'Tags added successfully');
+            showAlert('Success', 'Tags added successfully');
+
+            navigation.navigate('TraceAndTrack');
 
           } catch (err) {
             console.error('Unexpected error in handleDone:', err.message);
-            Alert.alert('Error', 'An unexpected error occurred while saving the tags.');
+            showAlert('Error', 'An unexpected error occurred while saving the tags.');
           } finally {
             setIsLoading(false);
           }
@@ -214,6 +220,13 @@ export default function Tag({ navigation }) {
         return new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(parsedAmount);
     };
 
+    <CustomAlert 
+        visible={alertVisible} 
+        title={alertTitle} 
+        message={alertMessage} 
+        onClose={() => setAlertVisible(false)} 
+    />
+
     return (
         <>
             {renderHeader()}
@@ -221,16 +234,8 @@ export default function Tag({ navigation }) {
                 <StatusBar hidden={false} />
 
                 <View style={styles.balanceContainer}>
-                    <Text style={styles.sectionTitle}>Create Tag</Text>
-
                     <View style={styles.wrapperButtons}>
-                        <TouchableOpacity style={styles.addButton} onPress={handleAddNewBalance}>
-                            <View style={styles.iconTextRow}>
-                                <AntDesign name="pluscircleo" size={20} color="black" />
-                                <Text style={styles.buttonText}>Add New Tag</Text>
-                            </View>
-                        </TouchableOpacity>
-
+                        <Text style={styles.sectionTitle}>Create Tag</Text>
                         <TouchableOpacity style={styles.deleteButton} onPress={handleDeleteBalance}>
                             <View style={styles.iconTextRow}>
                                 <AntDesign name="delete" size={20} color="black" />
@@ -300,7 +305,7 @@ export default function Tag({ navigation }) {
             <Modal visible={isConfirmationModalVisible} transparent={true} animationType="fade">
                 <View style={styles.modalContainer}>
                     <View style={styles.modalContent}>
-                        <Text style={styles.modalTitle}>Are you sure you want to {isUpdate ? 'update' : 'create'} this tag?</Text>
+                        <Text style={styles.modalTitle}>Are you sure you want to create this tag?</Text>
                         <View style={styles.modalButtons}>
                             <TouchableOpacity style={styles.modalButton} onPress={handleConfirm}>
                                 <Text style={styles.modalButtonTextYes}>Yes</Text>
@@ -324,7 +329,7 @@ export default function Tag({ navigation }) {
                 <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0, 0, 0, 0.5)' }}>
                     <View style={{ padding: 20, borderRadius: 10, alignItems: 'center' }}>
                         <ActivityIndicator size={50} color="#4CAF50" />
-                        <Text style={{ marginTop: 10, fontFamily: 'medium', color: 'white' }}>{isUpdate ? 'Updating your tag...' : 'Uploading your tag...'}</Text>
+                        <Text style={{ marginTop: 10, fontFamily: 'medium', color: 'white' }}>Uploading your tag...</Text>
                     </View>
                 </View>
             </Modal>
@@ -425,13 +430,14 @@ const styles = StyleSheet.create({
         marginTop: 50,
     },
     sectionTitle: {
-        fontSize: 16,
+        fontSize: 14,
         fontFamily: 'bold',
         color: 'black',
     },
     wrapperButtons: {
         flexDirection: 'row',
         justifyContent: 'space-between',
+        alignItems: 'center',
     },
     addButton: {
         paddingVertical: 10,

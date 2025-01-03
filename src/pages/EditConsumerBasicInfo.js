@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Dimensions, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Dimensions, ActivityIndicator } from 'react-native';
 import { useNavigation } from "@react-navigation/native";
 import { useFocusEffect } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -12,6 +12,7 @@ import { supabase } from '../backend/supabaseClient';
 import useRealTimeUpdates from '../hooks/useRealTimeUpdates';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import moment from 'moment';
+import CustomAlert from '../support/CustomAlert';
 
 const { width, height } = Dimensions.get('window');
 
@@ -33,7 +34,6 @@ const EditProfileScreen = () => {
     const [isModifiedMiddleName, setIsModifiedMiddleName] = useState('');
     const [isModifiedSuffix, setIsModifiedSuffix] = useState('');
     const [isModifiedAge, setIsModifiedAge] = useState('');
-    const [isModifiedBirthday, setModifiedBirthday] = useState('');
     const [isModifiedGender, setIsModifiedGender] = useState('');
     const [isModifiedAddress, setIsModifiedAddress] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -41,6 +41,15 @@ const EditProfileScreen = () => {
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [showGenderPicker, setShowGenderPicker] = useState(false);
     const [showGenderOptions, setShowGenderOptions] = useState(false);
+    const [alertVisible, setAlertVisible] = useState(false);
+    const [alertMessage, setAlertMessage] = useState('');
+    const [alertTitle, setAlertTitle] = useState('');
+
+    const showAlert = (title, message) => {
+        setAlertTitle(title);
+        setAlertMessage(message);
+        setAlertVisible(true);
+    };
 
     const { data: profile, refetch: refetchProfile } = useQuery({
             queryKey: ['profile', user?.id_user],
@@ -71,10 +80,6 @@ const EditProfileScreen = () => {
     );
   
     const handleSaveChanges = async () => {
-        if (!userId) {
-            Alert.alert('Error', 'User  ID is not available. Please log in.');
-            return;
-        }
 
         setIsLoading(true);
         
@@ -116,7 +121,7 @@ const EditProfileScreen = () => {
             }
 
             if (!hasChanges) {
-                Alert.alert('No changes detected', 'There are no new changes to save.');
+                showAlert('No changes detected', 'There are no new changes to save.');
                 return;
             }
 
@@ -138,14 +143,13 @@ const EditProfileScreen = () => {
         
             if (error) {
                 console.error('Error updating profile:', error);
-                Alert.alert('Error', 'There was an error updating your profile. Please try again.');
+                showAlert('Error', 'There was an error updating your profile. Please try again.');
             } else {
-                console.log('Profile updated successfully:', data);
-                Alert.alert('Success', 'Profile updated successfully');
+                showAlert('Success', 'Profile updated successfully');
             }
         } catch (error) {
             console.error('Unexpected error during profile update:', error);
-            Alert.alert('Error', 'An unexpected error occurred. Please try again.');
+            showAlert('Error', 'An unexpected error occurred. Please try again.');
         } finally {
             setIsLoading(false);
         }
@@ -346,6 +350,12 @@ const EditProfileScreen = () => {
                 )}
                 </TouchableOpacity>
             </View>
+            <CustomAlert 
+                visible={alertVisible} 
+                title={alertTitle} 
+                message={alertMessage} 
+                onClose={() => setAlertVisible(false)} 
+            />
         </ScrollView>
     );
 };

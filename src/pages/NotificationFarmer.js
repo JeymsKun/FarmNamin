@@ -6,6 +6,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useAuth } from '../hooks/useAuth';
 import { useQuery } from '@tanstack/react-query';
 import { fetchConsumersWithOrders } from '../utils/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import useRealTimeUpdates from '../hooks/useRealTimeUpdates';
 
 const { width, height } = Dimensions.get('window');
@@ -44,16 +45,23 @@ class NotificationItem extends React.PureComponent {
         if (this.timer) {
             clearTimeout(this.timer);
         }
-    }
+    };
+
+    handlePress = async () => {
+        const { item, navigateToConsumerDetails } = this.props;
+        await AsyncStorage.setItem(`notification_${item.id}`, 'viewed');
+        this.setState({ isNew: false }); 
+        navigateToConsumerDetails(item); 
+    };
 
     render() {
-        const { item, navigateToConsumerDetails } = this.props;
+        const { item, confirm_order } = this.props;
         const { isNew } = this.state;
         const latestOrderId = item.order_id;
         const fullName = `${item.consumer?.first_name} ${item.consumer?.middle_name ? item.consumer.middle_name + ' ' : ''}${item.consumer?.last_name} ${item.consumer?.suffix ? item.consumer.suffix : ''}`.trim();
 
         return (
-            <TouchableOpacity style={styles.notifyCard} onPress={() => navigateToConsumerDetails(item)}>
+            <TouchableOpacity style={styles.notifyCard} onPress={this.handlePress}>
                 <View style={styles.notifyInfo}>
                     <View style={styles.titleWrapper}>
                         <Image source={PRODUCT_ICON} style={styles.notifyIcon} />
@@ -74,7 +82,7 @@ class NotificationItem extends React.PureComponent {
                     </View>
                 </View>
 
-                {isNew && (
+                {isNew && !confirm_order && (
                     <View style={styles.newNotificationCircle}>
                         <Text style={styles.newNotificationText}>New</Text>
                     </View>
@@ -83,6 +91,14 @@ class NotificationItem extends React.PureComponent {
         );
     }
 }
+
+const renderEmptyComponent = () => {
+    return (
+        <View style={styles.emptyContainer}>
+            <Text style={styles.emptyText}>No notifications available.</Text>
+        </View>
+    );
+};
 
 const NotificationScreen = () => {
     const { user } = useAuth();
@@ -96,23 +112,9 @@ const NotificationScreen = () => {
         staleTime: 1000 * 60 * 5,
     });
 
-    const filterTodaysOrders = (orders) => {
-        const today = new Date();
-        return orders.filter(order => {
-            const orderDate = new Date(order.created_at);
-            return (
-                orderDate.getDate() === today.getDate() &&
-                orderDate.getMonth() === today.getMonth() &&
-                orderDate.getFullYear() === today.getFullYear()
-            );
-        });
-    };
-
-    const todaysOrders = filterTodaysOrders(consumersData);
-
     console.log('check consumers:', consumersData);
 
-    useRealTimeUpdates(userId);
+    useRealTimeUpdates(user?.id_user);
 
     useFocusEffect(
         React.useCallback(() => {
@@ -144,8 +146,14 @@ const NotificationScreen = () => {
 
     return (
         <FlatList
-            data={todaysOrders}
-            renderItem={({ item }) => (<NotificationItem item={item} navigateToConsumerDetails={navigateToConsumerDetails} />)}
+            data={consumersData}
+            renderItem={({ item }) => (
+                <NotificationItem 
+                    item={item} 
+                    navigateToConsumerDetails={navigateToConsumerDetails} 
+                    confirm_order={item.confirm_order}
+                />
+            )}
             keyExtractor={(item) => item.id_user ? item.id_user.toString() : `${item.order_id || Math.random()}`} 
             contentContainerStyle={styles.container}
             showsVerticalScrollIndicator={false}
@@ -155,6 +163,7 @@ const NotificationScreen = () => {
                     {renderHeader()}
                 </View>
             }
+            ListEmptyComponent={renderEmptyComponent}
             onRefresh={onRefresh}
             refreshing={refreshing}
         />
@@ -163,7 +172,7 @@ const NotificationScreen = () => {
 
 const styles = StyleSheet.create({
     container: {
-        flex: 1,
+        flexGrow: 1,
         backgroundColor: '#fff',
         padding: 20,
     },
@@ -284,6 +293,17 @@ const styles = StyleSheet.create({
         color: 'white',
         fontSize: 10,
         fontFamily: 'regular',
+    },
+    emptyContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 20,
+    },
+    emptyText: {
+        fontSize: 14,
+        fontFamily: 'regular',
+        color: '#888',
     },
 });
 

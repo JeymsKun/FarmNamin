@@ -6,7 +6,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useQuery } from '@tanstack/react-query';
 import { useDispatch } from 'react-redux';
 import { setProfile } from '../store/profileSlice';
-import { fetchProfileData, fetchUserBookmarkedProducts } from '../utils/api';
+import { fetchProfileData, fetchUserBookmarkedProducts, fetchUserFavorites } from '../utils/api';
 import { useAuth } from '../hooks/useAuth';
 import * as VideoThumbnails from 'expo-video-thumbnails';
 import useRealTimeUpdates from '../hooks/useRealTimeUpdates';
@@ -49,7 +49,7 @@ class ProductItem extends React.Component {
   }
 
   render() {
-    const { item, navigation, setIsProductDetailActive, formatPrice, productNameFontSize, productPriceFontSize} = this.props;
+    const { item, navigation, setIsProductDetailActive, formatPrice, productNameFontSize, productPriceFontSize, isFavorite} = this.props;
     const { thumbnail } = this.state;
 
     return (
@@ -81,8 +81,9 @@ class ProductItem extends React.Component {
         <TouchableOpacity style={styles.productInfo} 
           onPress={() => {
             setIsProductDetailActive(true); 
-            navigation.navigate('ProductViewer', { product: item });
-          }}>
+            navigation.navigate('ConsumerProductViewer', { product: item, isFavorite, id_user: item.id_user });
+          }}
+        >
           <Text style={[styles.productName, { fontSize: productNameFontSize }]}>{item.name}</Text>
           <Text style={[styles.productPrice, { fontSize: productPriceFontSize }]}>{formatPrice(item.price)}</Text>
         </TouchableOpacity>
@@ -97,12 +98,9 @@ const DEFAULT_PROFILE_IMAGE = require('../../assets/main/default_profile_photo.p
 const ProfileScreen = ({ navigation }) => {
   const { user } = useAuth();
   const dispatch = useDispatch();
-  const [profileModalVisible, setProfileModalVisible] = useState(false);
-  const [coverModalVisible, setCoverModalVisible] = useState(false);
   const [isProductDetailActive, setIsProductDetailActive] = useState(false);
   const [showMessage, setShowMessage] = useState(false);
   const [fadeAnim] = useState(new Animated.Value(1));
-  const profileScale = useRef(new Animated.Value(1)).current; 
   const flatListRef = useRef(null);
 
   const getFontSizes = (item) => {
@@ -121,18 +119,19 @@ const ProfileScreen = ({ navigation }) => {
   };
 
   useFocusEffect(
-      useCallback(() => {
-        if (!isProductDetailActive) {
-          refetchProfile();
-          if (user) {
-            refetchBookmarkedProducts(); 
-          }
-          if (flatListRef.current) {
-            flatListRef.current.scrollToOffset({ animated: true, offset: 0 }); 
-          }
+    useCallback(() => {
+      if (!isProductDetailActive) {
+        refetchProfile();
+        if (user) {
+          refetchBookmarkedProducts();
         }
-      }, [isProductDetailActive, user, refetchProfile, refetchBookmarkedProducts])
-    );
+        if (flatListRef.current) {
+          flatListRef.current.scrollToOffset({ animated: true, offset: 0 }); 
+        }
+      }
+      refetchFavorites(); 
+    }, [isProductDetailActive, user, refetchProfile, refetchBookmarkedProducts])
+  );
 
   const { data: profile, isLoading: loadingProfile, refetch: refetchProfile } = useQuery({
     queryKey: ['profile', user?.id_user],
@@ -147,7 +146,12 @@ const ProfileScreen = ({ navigation }) => {
     enabled: !!user,
   });
 
-  console.log('check favorite products:', bookmarkedProducts);
+  const { data: favoriteProducts = [], refetch: refetchFavorites } = useQuery({
+    queryKey: ['favorites', user?.id_user],
+    queryFn: () => fetchUserFavorites(user.id_user),
+    enabled: !!user,
+    staleTime: 1000 * 60 * 5,
+  });
 
   useRealTimeUpdates(user?.id_user);
 
@@ -170,36 +174,6 @@ const ProfileScreen = ({ navigation }) => {
     }).start(() => {
       setShowMessage(false); 
     });
-  };
-  
-  const handleCloseModal = (setModalVisible) => {
-    Animated.timing(fadeAnim, {
-      toValue: 0, 
-      duration: 300, 
-      useNativeDriver: true,
-    }).start(() => {
-      setModalVisible(false); 
-      fadeAnim.setValue(1); 
-    });
-  };
-
-  const animateProfile = () => {
-    Animated.sequence([
-      Animated.timing(profileScale, {
-        toValue: 1.1,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-      Animated.timing(profileScale, {
-        toValue: 1,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-    ]).start(() => setProfileModalVisible(true));
-  };  
-
-  const navigateToReviewScreen = () => {
-    navigation.navigate('ReviewScreen'); 
   };
 
   const renderUserPhoto = () => {
@@ -262,6 +236,7 @@ const ProfileScreen = ({ navigation }) => {
 
   const renderItem = ({ item }) => {
     const { productNameFontSize, productPriceFontSize } = getFontSizes(item);
+    const isFavorite = favoriteProducts.some(fav => fav.product.id === item.id && fav.is_bookmarked);
 
     return (
       <ProductItem 
@@ -271,6 +246,7 @@ const ProfileScreen = ({ navigation }) => {
         formatPrice={formatPrice} 
         productNameFontSize={productNameFontSize} 
         productPriceFontSize={productPriceFontSize}
+        isFavorite={isFavorite} 
       />
     );
   };
@@ -299,35 +275,6 @@ const ProfileScreen = ({ navigation }) => {
           </View>
 
         </View>
-      }
-      ListFooterComponent={
-        <>
-         <Modal
-          visible={profileModalVisible}
-          transparent={true}
-          animationType="fade"
-          onRequestClose={() => handleCloseModal(setProfileModalVisible)}
-        >
-          <Animated.View style={[styles.modalContainer, { opacity: fadeAnim }]}>
-            <TouchableOpacity style={styles.modalBackground} onPress={() => handleCloseModal(setProfileModalVisible)}>
-              <Image source={DEFAULT_PROFILE_IMAGE} style={styles.fullProfileImage} />
-            </TouchableOpacity>
-          </Animated.View>
-        </Modal>
-
-        <Modal
-          visible={coverModalVisible}
-          transparent={true}
-          animationType="fade"
-          onRequestClose={() => handleCloseModal(setCoverModalVisible)}
-        >
-          <Animated.View style={[styles.modalContainer, { opacity: fadeAnim }]}>
-            <TouchableOpacity style={styles.modalBackground} onPress={() => handleCloseModal(setCoverModalVisible)}>
-              <Image source={DEFAULT_COVER_PHOTO} style={styles.fullCoverImage} />
-            </TouchableOpacity>
-          </Animated.View>
-        </Modal>
-        </>
       }
       onRefresh={handleRefresh}
       refreshing={loadingBookmarkedProducts || loadingProfile}
@@ -508,7 +455,7 @@ const styles = StyleSheet.create({
   },  
   sectionTitle: {
     marginTop: 10,
-    fontSize: 16,
+    fontSize: 14,
     fontFamily: 'medium',
   },
   videoContainer: {

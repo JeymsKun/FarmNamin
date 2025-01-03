@@ -18,6 +18,7 @@ import AgentAssistScreen from '../pages/AgentAssist';
 import AboutUsScreen from '../pages/AboutUs';
 import WebViewScreen from '../support/WebViewScreen';
 import FaqsScreen from '../pages/Faqs';
+import VideoPlayer from '../support/VideoPlayer';
 
 const Stack = createStackNavigator();
 
@@ -79,6 +80,7 @@ const AppNav = () => {
         <Stack.Screen name="AboutUs" component={AboutUsScreen}/>
         <Stack.Screen name="WebBrowser" component={WebViewScreen}/>
         <Stack.Screen name="Faqs" component={FaqsScreen}/>
+        <Stack.Screen name="VideoPlayer" component={VideoPlayer}/>
 
       </Stack.Navigator>
     </NavigationContainer>
