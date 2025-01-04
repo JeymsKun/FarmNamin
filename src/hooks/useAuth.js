@@ -130,27 +130,30 @@ export const useAuth = () => {
     const checkStoredUser  = async () => {
       const storedUser  = await AsyncStorage.getItem('user');
       if (storedUser ) {
-        setUser (JSON.parse(storedUser));
+        setUser (JSON.parse(storedUser ));
       }
       setLoading(false);
     };
-
-    getUserSession();
-    checkStoredUser ();
-
-    const subscription = supabase.auth.onAuthStateChange((event, session) => {
-
-      if (session?.user) {
-        fetchUserInfo(session.user.id);
-      } else {
-        setUser (null);
-      }
-    });
-
-    return () => {
-      if (typeof subscription === 'function') subscription();
+  
+    const getSessionAndSubscribe = async () => {
+      await getUserSession(); 
+      checkStoredUser (); 
+  
+      const subscription = supabase.auth.onAuthStateChange((event, session) => {
+        if (session?.user) {
+          fetchUserInfo(session.user.id);
+        } else {
+          setUser (null);
+        }
+      });
+  
+      return () => {
+        if (typeof subscription === 'function') subscription();
+      };
     };
-  }, []);
+  
+    getSessionAndSubscribe();
+  }, []); 
 
   return {
     user,

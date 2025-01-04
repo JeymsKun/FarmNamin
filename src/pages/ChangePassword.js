@@ -7,7 +7,7 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 const { width, height } = Dimensions.get('window');
 
-export default function SignUpScreen({ navigation, route }) {
+export default function SignUpScreen({ route }) {
   const { role } = route.params;
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -53,67 +53,7 @@ export default function SignUpScreen({ navigation, route }) {
       setLoading(false); 
       return;
     }
-    
-    InsertRecord();
-  };
 
-
-  const InsertRecord = () => {
-    setLoading(true);
-
-    const InsertAPIURL = "http://192.168.1.56/farmnamin/change_password.php";  
-    const headers = {
-        'Accept': 'application/json', 
-        'Content-Type': 'application/json'
-    };
-
-    const data = {
-      username,
-      email, 
-      phoneNumber,
-      password,
-      confirmPassword,
-      role
-    };
-
-    fetch(InsertAPIURL, {
-      method: 'POST',
-      headers: headers,
-      body: JSON.stringify(data)
-    })
-    .then(response => response.text())
-    .then(text => {
-      console.log('Response Text:', text);
-      try {
-        return JSON.parse(text);
-      } catch (error) {
-        console.error('JSON Parse Error:', error);
-        throw error;
-      }
-    })
-    .then(responseData => {
-      setLoading(false);
-      if (Array.isArray(responseData) && responseData[0] && responseData[0].Message) {
-        if (responseData[0].Message === "You have successfully signed up!") {
-          console.log(responseData[0].Message);
-          setTimeout(() => {
-            navigation.navigate('BasicInfo', { role }); 
-          }, 2000);
-        } else if (responseData[0].Message === "Username, email, or phone number already exists.") {
-          if (responseData[0].Username) setUsernameExists(true);
-          if (responseData[0].Email) setEmailExists(true);
-          if (responseData[0].PhoneNumber) setPhoneExists(true);         
-        } else {
-          console.log(responseData[0].Message);
-        }
-      } else {
-        console.log("Unexpected response format.");
-      }
-    })
-    .catch(error => {
-      setLoading(false);
-      console.log("Error: " + error.message);
-    });
   };
 
   return (

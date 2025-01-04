@@ -498,9 +498,6 @@ const styles = StyleSheet.create({
     flexDirection: 'column',
     marginLeft: 10, 
   },
-  ratingContainer: {
-    flexDirection: 'row',
-  },
   starIcon: {
     width: 10,
     height: 10,
@@ -642,9 +639,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'gray', 
     marginVertical: 5, 
     width: '100%', 
-  },
-  starIcon: {
-    marginRight: 1,
   },
   emptyContainer: {
     flex: 1, 

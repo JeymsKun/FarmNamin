@@ -527,10 +527,6 @@ const styles = StyleSheet.create({
         fontFamily: 'regular',
         color: '#000',
     },
-    ratingContainer: {
-        marginTop: 20,
-        alignItems: 'center',
-    },
     horizontalStars: {
         flexDirection: "row",
         padding: 20,

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Image, ImageBackground, StyleSheet, Text, TextInput, TouchableOpacity, View, StatusBar, ActivityIndicator, Dimensions, Platform } from 'react-native';
+import { Image, ImageBackground, StyleSheet, Text, TextInput, TouchableOpacity, View, ActivityIndicator, Dimensions, Platform } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { LinearGradient } from 'expo-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';

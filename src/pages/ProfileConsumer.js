@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
-import { View, Text, StyleSheet, Image, TouchableOpacity, Modal, ImageBackground, StatusBar, FlatList, Animated } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity, ImageBackground, StatusBar, FlatList, Animated } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useQuery } from '@tanstack/react-query';
@@ -401,58 +401,7 @@ const styles = StyleSheet.create({
   },
   reviewContainer: {
     padding: 20,
-  },
-  reviewTitle: {
-    fontSize: 12,
-    fontFamily: 'bold',
-    color: '#4CAF50',
-  },
-  reviewList: {
-    paddingVertical: 5,
-    paddingRight: 30,
-    paddingLeft: 10,
-    flexGrow: 1,
-  },
-  reviewCard: {
-    width: 200,
-    padding: 5,
-    marginHorizontal: 5,
-    backgroundColor: '#4CAF50',
-    borderRadius: 10,
-  },
-  reviewContent: {
-    flexDirection: 'column',
-    marginLeft: 10, 
-  },
-  ratingContainer: {
-    flexDirection: 'row',
-  },
-  starIcon: {
-    width: 10,
-    height: 10,
-  },
-  reviewText: {
-    marginTop: 5,
-    fontSize: 12,
-    fontFamily: 'regular',
-    color: 'white',
-  },
-  tagsContainer: {
-    flexDirection: 'row',
-    marginTop: 3,
-  },
-  tag: {
-    backgroundColor: 'white',
-    borderRadius: 5,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    marginRight: 5,
-  },
-  tagText: {
-    color: 'black',
-    fontSize: 12,
-    fontFamily: 'regular',
-  },  
+  }, 
   sectionTitle: {
     marginTop: 10,
     fontSize: 14,
@@ -577,9 +526,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'gray', 
     marginVertical: 5, 
     width: '100%', 
-  },
-  starIcon: {
-    marginRight: 1,
   },
   emptyContainer: {
     flex: 1, 

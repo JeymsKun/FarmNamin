@@ -4,7 +4,6 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useNavigation } from "@react-navigation/native";
 import { useAuth } from '../hooks/useAuth';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import AntDesign from 'react-native-vector-icons/AntDesign';
 import { useDispatch } from 'react-redux';
 import { setProducts } from '../store/allProductSlice'; 
 import { fetchAllProduct, fetchUserFavorites } from '../utils/api';

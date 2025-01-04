@@ -320,7 +320,6 @@ const CalendarScreen = () => {
                                 label: monthName,
                                 value: monthName,
                             }))}
-                            style={styles.picker}
                             value={month}
                         />
                     </View>
@@ -332,7 +331,6 @@ const CalendarScreen = () => {
                                 label: String(2025 + index),
                                 value: String(2025 + index),
                             }))}
-                            style={styles.picker}
                             value={year}
                         />
                     </View>
@@ -632,22 +630,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         height: 35,
-    },
-    picker: {
-        inputIOS: {
-            paddingHorizontal: 0,  
-            paddingVertical: 5,    
-            textAlign: 'center',
-            fontSize: 12,          
-            color: '#000',        
-        },
-        inputAndroid: {
-            paddingHorizontal: 0,  
-            paddingVertical: 5,   
-            textAlign: 'center',
-            fontSize: 12, 
-            color: '#000', 
-        },
     },
     showCalendarButton: {
         backgroundColor: '#4CAF50', 

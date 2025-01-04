@@ -177,11 +177,6 @@ const EditProfileScreen = () => {
         setShowGenderOptions(false);
     };
 
-    const showGenderpicker = () => {
-        setShowGenderPicker(true);
-    };
-
-
     const handleFirstNameChange = (text) => {
         setFirstName(text);
         setIsModifiedFirstName(true);
@@ -389,10 +384,6 @@ const styles = StyleSheet.create({
     },
     icon: {
         marginLeft: 10,
-    },
-    picker: {
-        width: '100%',
-        marginTop: 20,
     },
     line: {
         height: 1,

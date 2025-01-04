@@ -5,10 +5,11 @@ import { Picker } from '@react-native-picker/picker';
 import { useAuth } from '../hooks/useAuth';
 import marketData from '../support/marketData';
 import searchData from '../support/searchData';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 
 const { width, height } = Dimensions.get('window');
 
-const MarketScreen = ({ route }) => {
+const MarketScreen = () => {
     const navigation = useNavigation();
     const { user } = useAuth();
     const [showInfoMessage, setShowInfoMessage] = useState(false);

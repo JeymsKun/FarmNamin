@@ -573,7 +573,7 @@ export default function Product({ navigation, route }) {
         </Modal>
 
         <View style={styles.inputContainer}>
-        <Text style={styles.inputTitles}>Product Name</Text>
+        <Text style={styles.inputTitlesName}>Product Name</Text>
         <View style={[styles.inputWrapper, focusedName && name.length === 0 && styles.errorBorder]}>
           <TextInput
             style={styles.input}
@@ -583,7 +583,7 @@ export default function Product({ navigation, route }) {
             onBlur={() => setFocusedName(true)}
           />
         </View>
-        <Text style={styles.inputTitles}>Product Price</Text>
+        <Text style={styles.inputTitlesPrice}>Product Price</Text>
         <View style={[styles.inputWrapper, focusedProductPrice && productPrice.length === 0 && styles.errorBorder]}>
           <TextInput
             style={styles.input}
@@ -594,7 +594,7 @@ export default function Product({ navigation, route }) {
             onBlur={() => setFocusedPrice(true)}
           />
         </View>
-        <Text style={styles.inputTitles}>Unit Price</Text>
+        <Text style={styles.inputTitlesUnit}>Unit Price</Text>
         <Text style={styles.inputTitlesCategoryNote}>*Note: The unit price should be the same as the product price.</Text>
         <View style={[styles.inputWrapper, focusedProductUnitPrice && productPrice.length === 0 && styles.errorBorder]}>
           <TextInput
@@ -605,7 +605,7 @@ export default function Product({ navigation, route }) {
             onBlur={() => setFocusedProductUnitPrice(true)}
           />
         </View>
-        <Text style={styles.inputTitles}>Location</Text>
+        <Text style={styles.inputTitlesLocation}>Location</Text>
         <View style={[styles.inputWrapper, focusedLocation && productLocation.length === 0 && styles.errorBorder]}>
           <TextInput
             style={styles.input}
@@ -615,7 +615,7 @@ export default function Product({ navigation, route }) {
             onBlur={() => setFocusedLocation(true)}
           />
         </View>
-        <Text style={styles.inputTitles}>Description</Text>
+        <Text style={styles.inputTitlesDescription}>Description</Text>
         <View style={[styles.inputWrapperDescription, focusedDescription && productDescription.length === 0 && styles.errorBorder]}>
           <TextInput
             style={[styles.input, { height: inputHeight, textAlignVertical: 'top', padding: 15, marginHorizontal: 3, color: 'black' }]}
@@ -631,7 +631,7 @@ export default function Product({ navigation, route }) {
             {`${productDescription.length}/${MAX_LENGTH}`}
           </Text>
         </View>
-        <Text style={styles.inputTitles}>Available Stock</Text>
+        <Text style={styles.inputTitlesStock}>Available Stock</Text>
         <Text style={styles.inputTitlesCategoryNote}>*Sample: 20 kg</Text>
         <View style={[styles.inputWrapper, focusedAvailable && available.length === 0 && styles.errorBorder]}>
           <TextInput
@@ -703,7 +703,7 @@ export default function Product({ navigation, route }) {
 
         {additionalDetails.map((detail, index) => (
           <View key={index}>
-            <Text style={styles.inputTitles}>{detail}</Text>
+            <Text style={styles.inputTitlesDetail}>{detail}</Text>
             <View style={[styles.inputWrapper, focusedDetails[detail] && detailValues[detail]?.length === 0 && styles.errorBorder]}>
               <TextInput
                 style={[styles.input, { flex: 1 }]}
@@ -1121,7 +1121,31 @@ const styles = StyleSheet.create({
     fontFamily: 'medium',
     color: '#333',
   },
-  inputTitles: {
+  inputTitlesName: {
+    fontSize: 14,
+    fontFamily: 'regular',
+  },
+  inputTitlesDescription: {
+    fontSize: 14,
+    fontFamily: 'regular',
+  },
+  inputTitlesUnit: {
+    fontSize: 14,
+    fontFamily: 'regular',
+  },
+  inputTitlesStock: {
+    fontSize: 14,
+    fontFamily: 'regular',
+  },
+  inputTitlesPrice: {
+    fontSize: 14,
+    fontFamily: 'regular',
+  },
+  inputTitlesDetail: {
+    fontSize: 14,
+    fontFamily: 'regular',
+  },
+  inputTitlesLocation: {
     fontSize: 14,
     fontFamily: 'regular',
   },

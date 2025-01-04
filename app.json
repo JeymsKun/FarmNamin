@@ -5,6 +5,11 @@
     "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "ios": {
@@ -12,11 +17,11 @@
       "version": "1.0.2"
     },
     "android": {
-      "versionCode": 5,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.jamesdavid.FarmNamin"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -28,6 +33,11 @@
     "plugins": [
       "expo-font",
       "expo-video"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "f1ad38e8-be95-4c72-ad41-ab60ffc895fa"
+      }
+    }
   }
 }

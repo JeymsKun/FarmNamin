@@ -5,12 +5,11 @@ import { useNavigation } from "@react-navigation/native";
 import { useAuth } from '../hooks/useAuth';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import AntDesign from 'react-native-vector-icons/AntDesign';
-import { useDispatch } from 'react-redux';
 import { setProducts } from '../store/allProductSlice'; 
 import { fetchAllProducts, fetchUserFavorites, fetchNewNotificationCount } from '../utils/api';
 import { useQuery } from '@tanstack/react-query';
 import * as VideoThumbnails from 'expo-video-thumbnails';
+import { useDispatch } from 'react-redux';
 import useRealTimeUpdates from '../hooks/useRealTimeUpdates';
 
 const thumbnailCache = {};

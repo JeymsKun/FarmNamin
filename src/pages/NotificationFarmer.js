@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, Dimensions, ActivityIndicator, StatusBar } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, Dimensions, StatusBar } from 'react-native';
 import { useNavigation } from "@react-navigation/native";
 import { useFocusEffect } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -10,12 +10,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import useRealTimeUpdates from '../hooks/useRealTimeUpdates';
 
 const { width, height } = Dimensions.get('window');
-
-const NEWS_ICON = require('../../assets/notify/news.png');
-
-const REPLY_ICON = require('../../assets/notify/reply.png');
-
-const UPDATE_ICON = require('../../assets/notify/settings.png');
 
 const PRODUCT_ICON = require('../../assets/notify/product.png');
 
@@ -205,11 +199,6 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.1,
         shadowRadius: 4,
         elevation: 3,
-    },
-    ratingContainer: {
-        flexDirection: 'row', 
-        alignItems: 'center', 
-        position: 'relative',
     },
     checkboxFeedbackContainer: {
         position: 'absolute',

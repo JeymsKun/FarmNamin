@@ -363,7 +363,7 @@ export default function Post({ route }) {
               {`${description.length}/${MAX_LENGTH}`}
             </Text>
           </View>
-          <Text style={styles.inputTitles}>Location</Text>
+          <Text style={styles.inputTitlesLocation}>Location</Text>
           <View style={[styles.inputWrapper, focusedLocation && location.length === 0 && styles.errorBorder]}>
             <TextInput
               style={styles.input}
@@ -696,6 +696,10 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   inputTitles: {
+    fontSize: scaleFontSize(14),
+    fontFamily: 'regular',
+  },
+  inputTitlesLocation: {
     fontSize: scaleFontSize(14),
     fontFamily: 'regular',
   },

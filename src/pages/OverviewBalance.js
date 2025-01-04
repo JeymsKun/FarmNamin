@@ -347,7 +347,7 @@ export default function OverviewBalance({ navigation }) {
                     onBlur={() => setDescriptionFocused(true)}
                 />
             </View>
-            <Text style={styles.inputTitles}>Amount</Text>
+            <Text style={styles.inputTitlesAmount}>Amount</Text>
             <View style={[styles.inputWrapper, amountFocused && amount.length === 0 && styles.errorBorder]}>
                 <TextInput
                     style={styles.input}
@@ -358,7 +358,7 @@ export default function OverviewBalance({ navigation }) {
                     onBlur={() => setAmountFocused(true)}
                 />
             </View>
-            <Text style={styles.inputTitles}>Type</Text>
+            <Text style={styles.inputTitlesType}>Type</Text>
             <View style={[styles.inputWrapper, typeFocused && type.length === 0 && styles.errorBorder]}>
                 <TextInput
                     style={styles.inputType}
@@ -608,6 +608,14 @@ const styles = StyleSheet.create({
         marginTop: 20,
     },
     inputTitles: {
+        fontSize: 14,
+        fontFamily: 'regular',
+    },
+    inputTitlesAmount: {
+        fontSize: 14,
+        fontFamily: 'regular',
+    },
+    inputTitlesType: {
         fontSize: 14,
         fontFamily: 'regular',
     },

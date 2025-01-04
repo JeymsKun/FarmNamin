@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Dimensions, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Dimensions, ActivityIndicator } from 'react-native';
 import { useNavigation } from "@react-navigation/native";
 import { useFocusEffect } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -175,11 +175,6 @@ const EditProfileScreen = () => {
         setShowDatePicker(true);
         setShowGenderOptions(false);
     };
-
-    const showGenderpicker = () => {
-        setShowGenderPicker(true);
-    };
-
 
     const handleFirstNameChange = (text) => {
         setFirstName(text);
@@ -389,10 +384,6 @@ const styles = StyleSheet.create({
     },
     icon: {
         marginLeft: 10,
-    },
-    picker: {
-        width: '100%',
-        marginTop: 20,
     },
     line: {
         height: 1,

@@ -1,16 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, Dimensions, StyleSheet, ActivityIndicator, Image, StatusBar, RefreshControl, TouchableOpacity, ScrollView, Linking } from 'react-native';
+import { View, Text, Dimensions, StyleSheet, ActivityIndicator, Image, StatusBar, TouchableOpacity, ScrollView } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { WEATHER_API_KEY, WEATHER_API_URL } from '@env';
 import AntDesign from '@expo/vector-icons/AntDesign';
 import { Picker } from '@react-native-picker/picker';
 import { useAuth } from '../hooks/useAuth';
 import axios from 'axios';
 
 const { width } = Dimensions.get('window');
-
-const WEATHER_API_KEY = '7f633553bdc1226849069eae66eaa6ef'; 
-
-const WEATHER_API_URL = 'https://api.openweathermap.org/data/2.5/weather';
 
 const MINDANAO_LOCATIONS = [
     'Cagayan de Oro',
@@ -61,7 +58,6 @@ const WeatherScreeen = () => {
 
         const formattedLocation = `${location}, Philippines`; 
         setLoading(true); 
-        console.log(`Fetching weather for: ${formattedLocation}`); 
         try {
             const response = await axios.get(WEATHER_API_URL, {
             params: {
@@ -250,15 +246,13 @@ const WeatherScreeen = () => {
                     </View>
                 ) : null}
 
-                {/* Move the Picker below the weather details */}
                 <View style={styles.pickerContainer}>
                     <Picker
                         selectedValue={location}
                         onValueChange={(itemValue) => {
-                        setLocation(itemValue);
-                        fetchWeather(); 
+                            setLocation(itemValue);
+                            fetchWeather(); 
                         }}
-                        style={styles.picker}
                     >
                         {MINDANAO_LOCATIONS.map((loc) => (
                         <Picker.Item key={loc} label={loc} value={loc} />
@@ -399,11 +393,6 @@ const styles = StyleSheet.create({
         borderColor: '#ccc',
         elevation: 2,
         overflow: 'hidden', 
-    },
-    picker: {
-        height: '100%',
-        width: '100%',
-        backgroundColor: 'transparent', 
     },
     loadingContainer: {
         alignItems: 'center',

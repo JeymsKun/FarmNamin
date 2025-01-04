@@ -215,8 +215,7 @@ const HomeTabs = ({ route }) => {
                         marginBottom: 7 
                     }, 
                     tabBarIconStyle: { 
-                        size: width < 375 ? 20 : 24, 
-                        marginTop: 1 
+                        size: width < 375 ? 20 : 22, 
                     },
                 })}
                 screenListeners={({ route }) => ({
@@ -262,7 +261,7 @@ const HomeTabs = ({ route }) => {
                 style={{
                 justifyContent: 'center',
                 position: 'absolute', 
-                bottom: 2, 
+                bottom: 0, 
                 left: tabWidth / 6, 
                 width: tabWidth / 1.5,
                 height: 6, 

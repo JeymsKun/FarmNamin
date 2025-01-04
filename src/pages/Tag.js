@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Dimensions, StatusBar, TextInput, ScrollView, Modal, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Dimensions, StatusBar, TextInput, ScrollView, Modal, ActivityIndicator } from 'react-native';
 import { BackHandler } from 'react-native';
-import { format } from 'date-fns';
 import AntDesign from '@expo/vector-icons/AntDesign';
 import Feather from '@expo/vector-icons/Feather';
 import CustomAlert from '../support/CustomAlert';
@@ -265,7 +264,7 @@ export default function Tag({ navigation }) {
                 </View>
 
                 <View style={styles.inputContainer}>
-                    <Text style={styles.inputTitles}>Description</Text>
+                    <Text style={styles.inputTitlesDescription}>Description</Text>
                     <View style={[styles.inputWrapper, descriptionFocused && description.length === 0 && styles.errorBorder]}>
                         <TextInput
                             style={styles.input}
@@ -275,7 +274,7 @@ export default function Tag({ navigation }) {
                             onBlur={() => setDescriptionFocused(true)}
                         />
                     </View>
-                    <Text style={styles.inputTitles}>Amount</Text>
+                    <Text style={styles.inputTitlesAmount}>Amount</Text>
                     <View style={[styles.inputWrapper, amountFocused && amount.length === 0 && styles.errorBorder]}>
                         <TextInput
                             style={styles.input}
@@ -494,7 +493,11 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontFamily: 'regular'
     },
-    inputTitles: {
+    inputTitlesAmount: {
+        fontSize: 14,
+        fontFamily: 'regular',
+    },
+    inputTitlesDescription: {
         fontSize: 14,
         fontFamily: 'regular',
     },

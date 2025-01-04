@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, Text, Dimensions, StyleSheet, ActivityIndicator, Image, StatusBar, TouchableOpacity, ScrollView, Alert, FlatList } from 'react-native';
+import { View, Text, Dimensions, StyleSheet, ActivityIndicator, Image, StatusBar, TouchableOpacity, FlatList } from 'react-native';
 import Carousel from 'react-native-reanimated-carousel';
 import { useFocusEffect } from '@react-navigation/native';
 import { configureReanimatedLogger, ReanimatedLogLevel } from 'react-native-reanimated';
@@ -8,7 +8,6 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import AntDesign from 'react-native-vector-icons/AntDesign';
 import { useNavigation } from '@react-navigation/native';
 import { format, parseISO } from 'date-fns'
-import 'react-native-get-random-values'; 
 import { useAuth } from '../hooks/useAuth'; 
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchPosts, fetchProducts, fetchNewOrders, deletePost, deleteProduct, deleteFavoritesByProductId } from '../utils/api';
@@ -145,7 +144,7 @@ class ProductItem extends React.Component {
       <View style={styles.productContainer}>
         <View style={styles.productMenuWrapper}>
           <Text style={styles.productDate}>Created on {formatDate(item.created_at)}</Text>
-          <TouchableOpacity onPress={() => toggleMenuProduct(item)} style={styles.dotsButton}>
+          <TouchableOpacity onPress={() => toggleMenuProduct(item)} style={styles.dotsButtonProduct}>
             <Icon name="dots-horizontal" size={25} color="#4CAF50" />
           </TouchableOpacity>
         </View>
@@ -270,11 +269,23 @@ const ProductScreen = () => {
   });
 
   useEffect(() => {
-    setPosts(fetchedPosts);
+  console.log('Posts updated:', posts);
+  }, [posts]);
+
+  useEffect(() => {
+    console.log('Products updated:', products);
+  }, [products]);
+
+  useEffect(() => {
+    if (fetchedPosts.length > 0) {
+      setPosts(fetchedPosts);
+    }
   }, [fetchedPosts]);
 
   useEffect(() => {
-    setProducts(fetchedProducts);
+    if (fetchedProducts.length > 0) {
+      setProducts(fetchedProducts);
+    }
   }, [fetchedProducts]);
 
   const selectedPost = useSelector((state) => state.product.selectedPost);
@@ -1107,7 +1118,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     position: 'relative',
   },
-  dotsButton: {
+  dotsButtonProduct: {
     position: 'absolute', 
     right: 0, 
     bottom: 0,

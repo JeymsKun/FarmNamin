@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, Dimensions, StyleSheet, Image, TouchableOpacity, Modal, ScrollView, Alert } from 'react-native';
+import { View, Text, Dimensions, StyleSheet, Image, TouchableOpacity, Modal, ScrollView } from 'react-native';
 import CustomAlert from '../support/CustomAlert';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';

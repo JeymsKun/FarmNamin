@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ActivityIndicator, View, StyleSheet, TouchableOpacity, Platform, StatusBar, SafeAreaView, Linking } from 'react-native';
+import { ActivityIndicator, View, StyleSheet, TouchableOpacity, StatusBar, SafeAreaView, Linking } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
