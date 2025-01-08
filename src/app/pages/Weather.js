@@ -35,7 +35,7 @@ const MINDANAO_LOCATIONS = [
   "Koronadal",
 ];
 
-const WeatherScreeen = () => {
+const WeatherScreen = () => {
   const navigation = useNavigation();
   const { user } = useAuth();
   const router = useRouter();
@@ -606,4 +606,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default WeatherScreeen;
+export default WeatherScreen;
